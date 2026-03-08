@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💍 Wedding Seating Chart</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --champagne:#f5e6c8;--blush:#e8b4b8;--gold:#c9953b;--deep:#1c1410;
+    --cream:#fdf6e9;--rose:#d4687a;--sage:#7a9e7e;
+    --bride:#d4687a;--groom:#5b8fa8;--both:#7a9e7e;
+    --border:rgba(255,255,255,0.08);--card:rgba(255,255,255,0.04);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--deep);color:var(--cream);font-family:'DM Mono',monospace;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;
+    background:radial-gradient(ellipse at 10% 15%,rgba(212,104,122,.06) 0%,transparent 45%),
+               radial-gradient(ellipse at 90% 85%,rgba(91,143,168,.06) 0%,transparent 45%);
+    pointer-events:none;z-index:0;}
+  .app{display:flex;height:100vh;overflow:hidden;position:relative;z-index:1;}
+
+  /* SIDEBAR */
+  .sidebar{width:290px;flex-shrink:0;background:rgba(0,0,0,.3);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+  .sidebar-header{padding:14px 14px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .sidebar-header h2{font-family:'Playfair Display',serif;font-size:15px;color:var(--champagne);margin-bottom:8px;}
+  .search-box{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--cream);font-family:'DM Mono',monospace;font-size:11px;padding:6px 10px;border-radius:4px;outline:none;}
+  .search-box:focus{border-color:rgba(201,149,59,.4);}
+  .search-box::placeholder{color:rgba(255,255,255,.25);}
+  .filter-row{display:flex;gap:4px;margin-top:7px;flex-wrap:wrap;}
+  .filter-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.06em;padding:4px 6px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);transition:all .15s;white-space:nowrap;}
+  .filter-btn.fa{background:rgba(201,149,59,.2);color:var(--gold);border-color:var(--gold);}
+  .filter-btn.fb{background:rgba(212,104,122,.2);color:var(--bride);border-color:var(--bride);}
+  .filter-btn.fg{background:rgba(91,143,168,.2);color:var(--groom);border-color:var(--groom);}
+  .filter-btn.fyes{background:rgba(122,158,126,.2);color:#9ecfa2;border-color:#9ecfa2;}
+  .filter-btn.fpend{background:rgba(255,255,255,.07);color:rgba(255,255,255,.4);border-color:rgba(255,255,255,.2);}
+  .unassigned-list{flex:1;overflow-y:auto;padding:7px;}
+  .unassigned-list::-webkit-scrollbar{width:3px;}
+  .unassigned-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+  .sidebar-stats{padding:9px 14px;border-top:1px solid var(--border);flex-shrink:0;font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.07em;display:flex;flex-direction:column;gap:2px;}
+
+  /* PARTY CARD */
+  .party-card{border:1px solid var(--border);border-radius:4px;padding:7px 9px;margin-bottom:4px;cursor:grab;transition:all .12s;user-select:none;}
+  .party-card.status-yes    {background:rgba(122,158,126,.08);border-left:2px solid rgba(122,158,126,.5);}
+  .party-card.status-mixed  {background:rgba(201,149,59,.07); border-left:2px solid rgba(201,149,59,.5);}
+  .party-card.status-pending{background:rgba(255,255,255,.03);border-left:2px solid rgba(255,255,255,.1);}
+  .party-card:hover{filter:brightness(1.35);}
+  .party-card.dragging{opacity:.3;}
+  .party-name{font-size:11px;color:var(--champagne);line-height:1.3;}
+  .party-meta{display:flex;gap:5px;margin-top:3px;align-items:center;flex-wrap:wrap;}
+  .party-count{font-size:9px;color:rgba(255,255,255,.35);}
+  .party-tag{font-size:8px;padding:1px 5px;border-radius:8px;letter-spacing:.05em;}
+  .tb{background:rgba(212,104,122,.2);color:var(--bride);}
+  .tg{background:rgba(91,143,168,.2);color:var(--groom);}
+  .rsvp-badge{font-size:8px;padding:1px 5px;border-radius:8px;letter-spacing:.04em;}
+  .rb-yes    {background:rgba(122,158,126,.25);color:#9ecfa2;}
+  .rb-mixed  {background:rgba(201,149,59,.2);  color:#d4aa5a;}
+  .rb-pending{background:rgba(255,255,255,.06);color:rgba(255,255,255,.3);}
+  .party-wp{font-size:8px;color:var(--gold);opacity:.75;}
+  .party-note{font-size:9px;color:rgba(255,255,255,.22);margin-top:2px;font-style:italic;line-height:1.3;}
+
+  /* MAIN */
+  .main{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:12px;}
+  .top-bar{display:flex;align-items:flex-start;gap:14px;flex-shrink:0;}
+  .top-bar h1{font-family:'Playfair Display',serif;font-size:19px;color:var(--champagne);}
+  .top-bar .date{font-size:10px;color:var(--gold);opacity:.6;letter-spacing:.12em;margin-top:2px;}
+  .top-bar-right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+  .stat-line{font-size:10px;letter-spacing:.06em;}
+
+  /* FLOOR */
+  .floor{flex:1;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:8px;padding:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:11px;align-content:start;}
+  .sweetheart-row{grid-column:1/-1;display:flex;justify-content:center;margin-bottom:2px;}
+  .sweetheart-card{width:260px;background:rgba(201,149,59,.06);border:1px solid rgba(201,149,59,.25);border-radius:6px;padding:11px 16px;text-align:center;}
+  .sweetheart-card .sw-label{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);opacity:.7;display:block;margin-bottom:3px;}
+  .sweetheart-names{font-family:'Playfair Display',serif;font-size:15px;color:var(--champagne);}
+  .sweetheart-names em{color:var(--blush);font-style:italic;}
+
+  /* TABLE */
+  .table-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:6px;padding:9px;min-height:105px;transition:border-color .15s,background .15s;display:flex;flex-direction:column;gap:4px;}
+  .table-card.drop-active{border-color:var(--gold);background:rgba(201,149,59,.05);}
+  .table-card.over-cap{border-color:rgba(212,104,122,.5)!important;}
+  .table-header{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .table-badge{font-size:8px;letter-spacing:.2em;color:rgba(201,149,59,.45);text-transform:uppercase;font-weight:600;margin-bottom:2px;padding-left:1px;}
+  .clear-table-btn{margin-left:2px;flex-shrink:0;background:rgba(212,104,122,.12);border:1px solid rgba(212,104,122,.25);color:rgba(212,104,122,.6);font-size:9px;padding:2px 6px;border-radius:3px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:.04em;transition:all .15s;line-height:1;}
+  .clear-table-btn:hover{background:rgba(212,104,122,.3);color:var(--rose);border-color:var(--rose);}
+  .table-name-input{flex:1;background:transparent;border:none;border-bottom:1px solid transparent;color:var(--champagne);font-family:'DM Mono',monospace;font-size:10px;outline:none;padding:1px 2px;transition:border-color .15s;}
+  .table-name-input:focus{border-bottom-color:rgba(201,149,59,.4);}
+  .table-name-input::placeholder{color:rgba(255,255,255,.18);}
+  .table-cap-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex-shrink:0;}
+  .table-cap{font-size:8px;letter-spacing:.04em;padding:1px 5px;border-radius:8px;white-space:nowrap;}
+  .cap-ok  {color:var(--sage);background:rgba(122,158,126,.15);}
+  .cap-warn{color:var(--gold);background:rgba(201,149,59,.15);}
+  .cap-over{color:var(--rose);background:rgba(212,104,122,.15);}
+  .cap-conf{font-size:8px;color:rgba(122,158,126,.55);padding:0 5px;letter-spacing:.04em;}
+  .table-guests{flex:1;display:flex;flex-direction:column;gap:2px;}
+  .table-empty{font-size:10px;color:rgba(255,255,255,.12);font-style:italic;padding:4px 0;text-align:center;}
+  .table-guests .party-card{margin-bottom:0;padding:4px 7px;}
+  .table-guests .party-name{font-size:10px;}
+
+  /* LEGEND */
+  .legend{display:flex;gap:12px;flex-shrink:0;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--border);}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:rgba(255,255,255,.4);}
+  .legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .legend-bar{width:3px;height:14px;border-radius:2px;flex-shrink:0;}
+
+  /* EDIT BUTTON on party cards */
+  .party-card{position:relative;}
+  .edit-btn{position:absolute;top:5px;right:6px;background:rgba(201,149,59,.18);border:1px solid rgba(201,149,59,.3);color:var(--gold);font-size:9px;padding:1px 6px;border-radius:3px;cursor:pointer;opacity:0;transition:opacity .15s;font-family:'DM Mono',monospace;letter-spacing:.04em;z-index:2;}
+  .party-card:hover .edit-btn{opacity:1;}
+  .edit-btn:hover{background:rgba(201,149,59,.35);}
+
+  /* EDIT PARTY MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .modal-overlay.hidden{display:none;}
+  .modal{background:#1e1509;border:1px solid rgba(201,149,59,.3);border-radius:10px;width:500px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.7);}
+  .modal-head{padding:20px 24px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .modal-head h3{font-family:'Playfair Display',serif;font-size:17px;color:var(--champagne);margin-bottom:2px;}
+  .modal-head .modal-sub{font-size:9px;color:rgba(255,255,255,.25);letter-spacing:.1em;text-transform:uppercase;}
+  .modal-body{flex:1;overflow-y:auto;padding:16px 24px;}
+  .modal-body::-webkit-scrollbar{width:3px;}
+  .modal-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+  .modal-foot{padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:space-between;align-items:center;flex-shrink:0;}
+
+  /* Party meta fields */
+  .ep-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+  .ep-field{display:flex;flex-direction:column;gap:4px;}
+  .ep-field label{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;}
+  .ep-field select,.ep-field input[type=text]{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--cream);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:4px;outline:none;width:100%;}
+  .ep-field select:focus,.ep-field input[type=text]:focus{border-color:rgba(201,149,59,.5);}
+  .ep-field select option{background:#1e1509;}
+
+  /* Member list */
+  .ep-members-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .ep-members-label{font-size:9px;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;}
+  .ep-add-btn{background:rgba(122,158,126,.15);border:1px solid rgba(122,158,126,.35);color:#9ecfa2;font-family:'DM Mono',monospace;font-size:9px;padding:3px 10px;border-radius:3px;cursor:pointer;letter-spacing:.06em;transition:all .15s;}
+  .ep-add-btn:hover{background:rgba(122,158,126,.3);}
+  .ep-members{display:flex;flex-direction:column;gap:5px;margin-bottom:6px;}
+  .ep-member{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:5px;padding:7px 9px;}
+  .ep-member-drag{color:rgba(255,255,255,.15);font-size:12px;cursor:grab;flex-shrink:0;line-height:1;padding:0 2px;}
+  .ep-member-name{flex:1;background:transparent;border:none;border-bottom:1px solid transparent;color:var(--champagne);font-family:'DM Mono',monospace;font-size:11px;outline:none;padding:1px 2px 3px;}
+  .ep-member-name:focus{border-bottom-color:rgba(201,149,59,.4);}
+  .ep-member-rsvp{background:rgba(255,255,255,.05);border:1px solid var(--border);color:rgba(255,255,255,.5);font-family:'DM Mono',monospace;font-size:9px;padding:3px 5px;border-radius:3px;outline:none;cursor:pointer;}
+  .ep-member-rsvp:focus{border-color:rgba(201,149,59,.4);}
+  .ep-member-rsvp option{background:#1e1509;}
+  .ep-member-split{background:rgba(201,149,59,.12);border:1px solid rgba(201,149,59,.25);color:rgba(201,149,59,.7);font-family:'DM Mono',monospace;font-size:9px;padding:3px 7px;border-radius:3px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+  .ep-member-split:hover{background:rgba(201,149,59,.28);color:var(--gold);}
+  .ep-member-del{background:rgba(212,104,122,.1);border:1px solid rgba(212,104,122,.2);color:rgba(212,104,122,.5);font-size:11px;width:22px;height:22px;border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-family:'DM Mono',monospace;line-height:1;}
+  .ep-member-del:hover{background:rgba(212,104,122,.3);color:var(--rose);}
+  .ep-empty{font-size:11px;color:rgba(255,255,255,.15);font-style:italic;text-align:center;padding:12px 0;}
+
+  .modal-actions{display:flex;gap:8px;}
+  .btn-cancel{background:transparent;border:1px solid var(--border);color:rgba(255,255,255,.4);font-family:'DM Mono',monospace;font-size:10px;padding:7px 16px;border-radius:4px;cursor:pointer;transition:all .15s;}
+  .btn-cancel:hover{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.6);}
+  .btn-primary{background:rgba(201,149,59,.2);border:1px solid var(--gold);color:var(--gold);font-family:'DM Mono',monospace;font-size:10px;padding:7px 18px;border-radius:4px;cursor:pointer;letter-spacing:.06em;transition:all .15s;}
+  .btn-primary:hover{background:rgba(201,149,59,.38);}
+  .btn-danger{background:rgba(212,104,122,.12);border:1px solid rgba(212,104,122,.3);color:rgba(212,104,122,.7);font-family:'DM Mono',monospace;font-size:10px;padding:7px 14px;border-radius:4px;cursor:pointer;transition:all .15s;}
+  .btn-danger:hover{background:rgba(212,104,122,.28);color:var(--rose);}
+
+  /* Add guest panel */
+  .add-guest-row{display:flex;gap:5px;margin-top:6px;}
+  .add-guest-input{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--cream);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:4px;outline:none;}
+  .add-guest-input:focus{border-color:rgba(201,149,59,.4);}
+  .add-guest-input::placeholder{color:rgba(255,255,255,.2);}
+  .add-guest-btn{background:rgba(201,149,59,.2);border:1px solid rgba(201,149,59,.4);color:var(--gold);font-family:'DM Mono',monospace;font-size:10px;padding:5px 10px;border-radius:4px;cursor:pointer;white-space:nowrap;transition:all .15s;}
+  .add-guest-btn:hover{background:rgba(201,149,59,.35);}
+  .add-guest-label{font-size:9px;color:rgba(255,255,255,.25);letter-spacing:.1em;text-transform:uppercase;}
+
+  .btn-save{background:rgba(122,158,126,.15);border:1px solid rgba(122,158,126,.4);color:#9ecfa2;font-family:'DM Mono',monospace;font-size:10px;padding:6px 14px;border-radius:4px;cursor:pointer;letter-spacing:.07em;transition:all .2s;flex-shrink:0;}
+  .btn-save:hover{background:rgba(122,158,126,.3);border-color:#9ecfa2;}
+  .btn-save.saving{opacity:.5;cursor:default;}
+  .btn-save.saved{background:rgba(122,158,126,.3);border-color:#9ecfa2;color:#c5eecc;}
+
+  /* FLOOR TOOLBAR */
+  .floor-toolbar{display:flex;align-items:center;gap:8px;flex-shrink:0;padding:0 2px;}
+  .btn-add-table{background:rgba(201,149,59,.15);border:1px solid rgba(201,149,59,.35);color:var(--gold);font-family:'DM Mono',monospace;font-size:10px;padding:5px 13px;border-radius:4px;cursor:pointer;letter-spacing:.06em;transition:all .15s;white-space:nowrap;}
+  .btn-add-table:hover{background:rgba(201,149,59,.3);}
+  .btn-hide-full{background:rgba(255,255,255,.04);border:1px solid var(--border);color:rgba(255,255,255,.4);font-family:'DM Mono',monospace;font-size:10px;padding:5px 13px;border-radius:4px;cursor:pointer;letter-spacing:.06em;transition:all .15s;white-space:nowrap;}
+  .btn-hide-full:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);}
+  .btn-hide-full.active{background:rgba(91,143,168,.15);border-color:rgba(91,143,168,.4);color:#8bbdd4;}
+  .table-card.hidden-full{display:none;}
+
+  /* DELETE TABLE button */
+  .del-table-btn{margin-left:2px;flex-shrink:0;background:rgba(212,104,122,.08);border:1px solid rgba(212,104,122,.18);color:rgba(212,104,122,.4);font-size:9px;padding:2px 6px;border-radius:3px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:.04em;transition:all .15s;line-height:1;}
+  .del-table-btn:hover{background:rgba(212,104,122,.25);color:var(--rose);border-color:var(--rose);}
+
+  /* SETUP BANNER */
+  .setup-banner{background:rgba(201,149,59,.08);border:1px solid rgba(201,149,59,.25);border-radius:6px;padding:12px 16px;margin-bottom:4px;font-size:11px;color:rgba(255,255,255,.5);line-height:1.7;}
+  .setup-banner strong{color:var(--gold);}
+  .setup-banner code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:3px;font-size:10px;color:var(--champagne);}
+
+  @media print{
+    body{background:white;color:black;}body::before{display:none;}
+    .sidebar{display:none;}.app{display:block;}.main{overflow:visible;}
+    .floor{background:#f9f9f9;border:1px solid #ddd;}
+    .table-card{border:1px solid #ccc;background:white;break-inside:avoid;}
+    .party-card{border-left-width:2px;background:#fafafa;}
+    .party-name,.sweetheart-names,.top-bar h1,.table-name-input{color:black;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>Unassigned Parties</h2>
+      <input class="search-box" id="searchBox" type="text" placeholder="Search guests…" oninput="renderSidebar()">
+      <div class="filter-row">
+        <button class="filter-btn fa" id="f-all" onclick="setFilter('all')">ALL</button>
+        <button class="filter-btn" id="f-bride" onclick="setFilter('bride')">💐 SIDE A</button>
+        <button class="filter-btn" id="f-groom" onclick="setFilter('groom')">🤵 SIDE B</button>
+        <button class="filter-btn" id="f-yes" onclick="setFilter('yes')">✅ CONF</button>
+        <button class="filter-btn" id="f-pending" onclick="setFilter('pending')">🔲 PENDING</button>
+      </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        <div class="add-guest-label">+ Add New Party</div>
+        <div class="add-guest-row">
+          <input class="add-guest-input" id="newGuestName" placeholder="Name(s)…" onkeydown="if(event.key==='Enter')addNewParty()">
+          <button class="add-guest-btn" onclick="addNewParty()">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="unassigned-list" id="unassignedList"></div>
+    <div class="sidebar-stats" id="sidebarStats"></div>
+  </div>
+
+  <div class="main">
+    <div class="top-bar">
+      <div>
+        <h1 id="eventTitle">💍 Partner A &amp; Partner B</h1>
+        <div class="date" id="eventDate">DATE · VENUE · SEATING CHART</div>
+      </div>
+      <div class="top-bar-right" id="topStats"></div>
+      <button class="btn-save" id="saveBtn" onclick="saveToFile()">💾 Save</button>
+    </div>
+    <div class="floor-toolbar">
+      <button class="btn-add-table" onclick="addTable()">＋ Add Table</button>
+      <button class="btn-hide-full" id="hideFullBtn" onclick="toggleHideFull()">Hide Full Tables</button>
+    </div>
+    <div class="floor" id="floor">
+      <div class="sweetheart-row">
+        <div class="sweetheart-card">
+          <span class="sw-label">✦ Sweetheart Table ✦</span>
+          <div class="sweetheart-names"><em id="sw1">Partner A</em> &amp; <em id="sw2">Partner B</em></div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-bar" style="background:rgba(122,158,126,.7)"></div>Confirmed ✅</div>
+      <div class="legend-item"><div class="legend-bar" style="background:rgba(201,149,59,.7)"></div>Mixed / Partial</div>
+      <div class="legend-item"><div class="legend-bar" style="background:rgba(255,255,255,.15)"></div>No Response</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--bride)"></div>Side A</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--groom)"></div>Side B</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Wedding Party ★</div>
+      <div class="legend-item" style="margin-left:auto;font-size:9px;color:rgba(255,255,255,.18);">drag to rearrange · click table name to rename</div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT PARTY MODAL -->
+<div class="modal-overlay hidden" id="editOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>✏️ Edit Party</h3>
+      <div class="modal-sub" id="editModalSub"></div>
+    </div>
+    <div class="modal-body">
+      <div class="ep-meta">
+        <div class="ep-field">
+          <label>Side</label>
+          <select id="ep-side">
+            <option value="bride">💐 Side A</option>
+            <option value="groom">🤵 Side B</option>
+          </select>
+        </div>
+        <div class="ep-field">
+          <label>RSVP Status</label>
+          <select id="ep-rsvp">
+            <option value="yes">✅ Confirmed</option>
+            <option value="mixed">⚠️ Partial / Mixed</option>
+            <option value="pending">🔲 No Response</option>
+          </select>
+        </div>
+        <div class="ep-field" style="grid-column:1/-1">
+          <label>Note</label>
+          <input type="text" id="ep-note" placeholder="Dietary needs, seating note…">
+        </div>
+      </div>
+      <div class="ep-members-header">
+        <span class="ep-members-label">Members</span>
+        <button class="ep-add-btn" onclick="epAddMember()">+ Add Member</button>
+      </div>
+      <div class="ep-members" id="epMemberList"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-danger" onclick="epDeleteParty()">🗑 Delete Party</button>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+        <button class="btn-primary" onclick="saveEditModal()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP MODAL -->
+<div class="modal-overlay" id="setupOverlay" style="z-index:200;">
+  <div class="modal" style="width:480px;">
+    <div class="modal-head">
+      <h3>✦ Set Up Your Seating Chart</h3>
+      <div class="modal-sub">CUSTOMIZE BEFORE YOU START</div>
+    </div>
+    <div class="modal-body">
+      <div class="ep-meta">
+        <div class="ep-field" style="grid-column:1/-1">
+          <label>Couple's Names (shown in header)</label>
+          <input type="text" id="setup-title" placeholder="e.g. Smith &amp; Johnson" value="">
+        </div>
+        <div class="ep-field" style="grid-column:1/-1">
+          <label>Date &amp; Venue</label>
+          <input type="text" id="setup-date" placeholder="e.g. JUNE 14, 2026 · THE GRAND HALL" value="">
+        </div>
+        <div class="ep-field">
+          <label>Partner A name (sweetheart table)</label>
+          <input type="text" id="setup-sw1" placeholder="e.g. Alex" value="">
+        </div>
+        <div class="ep-field">
+          <label>Partner B name (sweetheart table)</label>
+          <input type="text" id="setup-sw2" placeholder="e.g. Jordan" value="">
+        </div>
+        <div class="ep-field">
+          <label>Number of tables to start with</label>
+          <input type="number" id="setup-tables" min="1" max="40" value="6" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--cream);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:4px;outline:none;width:100%;">
+        </div>
+        <div class="ep-field">
+          <label>Guests per table (capacity)</label>
+          <input type="number" id="setup-cap" min="1" max="20" value="8" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--cream);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:4px;outline:none;width:100%;">
+        </div>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,.3);line-height:1.7;margin-top:4px;">
+        After setup, add guests using <strong style="color:var(--gold)">+ Add New Party</strong> in the sidebar,
+        then drag them onto tables. Hover any party card to <strong style="color:var(--gold)">✏️ edit</strong> members, RSVP, notes &amp; more.
+        Hit <strong style="color:#9ecfa2">💾 Save</strong> anytime to download an updated copy.
+      </div>
+    </div>
+    <div class="modal-foot" style="justify-content:flex-end;">
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="applySetup()">Let's Go ✦</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const P=[
+];
+
+const tables=[
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let activeFilter='all',dragId=null,dragFrom=null;
+let nextSyntheticId=100;
+let hideFull=false;
+const byId=id=>P.find(p=>p.id===id);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const assignedSet=()=>new Set(tables.flatMap(t=>t.pids));
+const rsvpLabel=r=>r==='yes'?'✅ Confirmed':r==='mixed'?'⚠️ Partial':'🔲 Pending';
+const rsvpCls=r=>r==='yes'?'rb-yes':r==='mixed'?'rb-mixed':'rb-pending';
+
+// ── SETUP MODAL ───────────────────────────────────────────────────────────────
+function applySetup(){
+  const title = document.getElementById('setup-title').value.trim();
+  const date  = document.getElementById('setup-date').value.trim();
+  const sw1   = document.getElementById('setup-sw1').value.trim();
+  const sw2   = document.getElementById('setup-sw2').value.trim();
+  const numT  = Math.max(1, parseInt(document.getElementById('setup-tables').value)||6);
+  const cap   = Math.max(1, parseInt(document.getElementById('setup-cap').value)||8);
+
+  if(title) document.getElementById('eventTitle').textContent = '💍 ' + title;
+  if(date)  document.getElementById('eventDate').textContent  = date + ' · SEATING CHART';
+  if(sw1)   document.getElementById('sw1').textContent = sw1;
+  if(sw2)   document.getElementById('sw2').textContent = sw2;
+
+  // Build starter tables
+  tables.length = 0;
+  for(let i=1;i<=numT;i++) tables.push({id:i,name:'',cap,pids:[]});
+
+  document.getElementById('setupOverlay').classList.add('hidden');
+  buildFloor();
+  renderSidebar();
+}
+
+// ── ADD TABLE ─────────────────────────────────────────────────────────────────
+function addTable(){
+  const newId = tables.length > 0 ? Math.max(...tables.map(t=>t.id)) + 1 : 1;
+  const cap   = tables.length > 0 ? tables[0].cap : 8;
+  tables.push({id:newId, name:'', cap, pids:[]});
+  buildFloor();
+  updateStats();
+  setTimeout(()=>{
+    const el = document.getElementById('t'+newId);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 80);
+}
+
+// ── HIDE FULL TABLES ──────────────────────────────────────────────────────────
+function toggleHideFull(){
+  hideFull = !hideFull;
+  const btn = document.getElementById('hideFullBtn');
+  btn.classList.toggle('active', hideFull);
+  btn.textContent = hideFull ? '👁 Show All Tables' : 'Hide Full Tables';
+  applyHideFull();
+}
+function applyHideFull(){
+  tables.forEach(t=>{
+    const el = document.getElementById('t'+t.id);
+    if(!el) return;
+    const pts = t.pids.map(byId).filter(Boolean);
+    const poss = pts.reduce((s,p)=>s+p.poss,0);
+    el.classList.toggle('hidden-full', hideFull && poss >= t.cap);
+  });
+}
+
+// ── ADD NEW PARTY ─────────────────────────────────────────────────────────────
+function addNewParty(){
+  const inp = document.getElementById('newGuestName');
+  const raw = inp.value.trim();
+  if(!raw) return;
+  const newId = nextSyntheticId++;
+  P.push({id:newId, n:raw, conf:0, poss:1, rsvp:'pending', s:'bride', imm:0, wp:0, note:''});
+  inp.value = '';
+  renderSidebar();
+}
+
+// ── EDIT PARTY MODAL ──────────────────────────────────────────────────────────
+let editTargetId = null;
+let epMembers = [];
+
+function openEditModal(pid, event) {
+  event.stopPropagation();
+  event.preventDefault();
+  editTargetId = pid;
+  const p = byId(pid);
+  epMembers = p.n.split(',').map(s => s.trim()).filter(Boolean)
+    .map(name => ({ name, rsvp: p.rsvp === 'yes' ? 'yes' : 'pending' }));
+  if(epMembers.length === 0) epMembers = [{name: p.n, rsvp: p.rsvp}];
+  document.getElementById('editModalSub').textContent = `PARTY #${p.id}`;
+  document.getElementById('ep-side').value = p.s;
+  document.getElementById('ep-rsvp').value = p.rsvp;
+  document.getElementById('ep-note').value = p.note || '';
+  renderEpMembers();
+  document.getElementById('editOverlay').classList.remove('hidden');
+}
+function closeEditModal(){
+  document.getElementById('editOverlay').classList.add('hidden');
+  editTargetId = null; epMembers = [];
+}
+function renderEpMembers(){
+  const list = document.getElementById('epMemberList');
+  if(epMembers.length === 0){
+    list.innerHTML = '<div class="ep-empty">No members — add one above</div>';
+    return;
+  }
+  list.innerHTML = epMembers.map((m, i) => `
+    <div class="ep-member" data-idx="${i}">
+      <span class="ep-member-drag" title="drag to reorder">⠿</span>
+      <input class="ep-member-name" type="text" value="${esc(m.name)}" placeholder="Name…" data-idx="${i}" oninput="epMembers[${i}].name=this.value">
+      <select class="ep-member-rsvp" data-idx="${i}" onchange="epMembers[${i}].rsvp=this.value">
+        <option value="yes"     ${m.rsvp==='yes'    ?'selected':''}>✅</option>
+        <option value="pending" ${m.rsvp==='pending'?'selected':''}>🔲</option>
+        <option value="no"      ${m.rsvp==='no'     ?'selected':''}>❌</option>
+      </select>
+      <button class="ep-member-split" onclick="epSplitMember(${i})" title="Split into own party">↗ Split out</button>
+      <button class="ep-member-del" onclick="epRemoveMember(${i})" title="Remove member">✕</button>
+    </div>`).join('');
+}
+function epAddMember(){
+  epMembers.push({name:'', rsvp:'pending'});
+  renderEpMembers();
+  const inputs = document.querySelectorAll('.ep-member-name');
+  if(inputs.length) inputs[inputs.length-1].focus();
+}
+function epRemoveMember(i){ epMembers.splice(i,1); renderEpMembers(); }
+function epSplitMember(i){
+  const m = epMembers[i];
+  if(!m.name.trim()){ epRemoveMember(i); return; }
+  const p = byId(editTargetId);
+  const newId = nextSyntheticId++;
+  P.push({id:newId, n:m.name.trim(), conf:m.rsvp==='yes'?1:0, poss:m.rsvp==='no'?0:1,
+    rsvp:m.rsvp==='no'?'pending':m.rsvp, s:p.s, imm:p.imm, wp:p.wp, note:`Split from: ${p.n}`});
+  const tbl = tables.find(t=>t.pids.includes(editTargetId));
+  if(tbl) tbl.pids.push(newId);
+  epMembers.splice(i,1);
+  renderEpMembers();
+}
+function epDeleteParty(){
+  if(!confirm('Delete this entire party? They will be removed from the chart.')) return;
+  tables.forEach(t=>{ t.pids = t.pids.filter(id=>id!==editTargetId); });
+  const idx = P.findIndex(p=>p.id===editTargetId);
+  if(idx !== -1) P.splice(idx, 1);
+  closeEditModal(); buildFloor(); renderSidebar();
+}
+function saveEditModal(){
+  const p = byId(editTargetId);
+  if(!p) return closeEditModal();
+  document.querySelectorAll('.ep-member-name').forEach((inp,i)=>{ if(epMembers[i]) epMembers[i].name=inp.value; });
+  document.querySelectorAll('.ep-member-rsvp').forEach((sel,i)=>{ if(epMembers[i]) epMembers[i].rsvp=sel.value; });
+  const validMembers = epMembers.filter(m=>m.name.trim());
+  p.n = validMembers.map(m=>m.name.trim()).join(', ') || p.n;
+  p.s = document.getElementById('ep-side').value;
+  p.note = document.getElementById('ep-note').value.trim();
+  const yesCount  = validMembers.filter(m=>m.rsvp==='yes').length;
+  const possCount = validMembers.filter(m=>m.rsvp!=='no').length;
+  p.conf = yesCount;
+  p.poss = Math.max(possCount, yesCount) || validMembers.length || 1;
+  if(yesCount > 0 && possCount === yesCount) p.rsvp = 'yes';
+  else if(yesCount > 0) p.rsvp = 'mixed';
+  else p.rsvp = document.getElementById('ep-rsvp').value;
+  closeEditModal(); buildFloor(); renderSidebar();
+}
+document.getElementById('editOverlay').addEventListener('click', function(e){ if(e.target===this) closeEditModal(); });
+
+// ── PARTY CARD HTML ───────────────────────────────────────────────────────────
+function partyHTML(p){
+  const countTxt=p.conf===p.poss?`${p.poss} guest${p.poss!==1?'s':''}`:`${p.conf}✅ / ${p.poss} guests`;
+  return`<div class="party-card status-${p.rsvp}" draggable="true" data-pid="${p.id}">
+    <button class="edit-btn" onclick="openEditModal(${p.id},event)">✏️ edit</button>
+    <div class="party-name">${esc(p.n)}</div>
+    <div class="party-meta">
+      <span class="party-count">${countTxt}</span>
+      <span class="party-tag ${p.s==='bride'?'tb':'tg'}">${p.s==='bride'?'💐 Side A':'🤵 Side B'}</span>
+      <span class="rsvp-badge ${rsvpCls(p.rsvp)}">${rsvpLabel(p.rsvp)}</span>
+      ${p.wp?'<span class="party-wp">★ WP</span>':''}
+    </div>
+    ${p.note?`<div class="party-note">${esc(p.note)}</div>`:''}
+  </div>`;
+}
+
+// ── TABLE RENDER ──────────────────────────────────────────────────────────────
+function renderTable(t){
+  const el=document.getElementById('t'+t.id);
+  const pts=t.pids.map(byId).filter(Boolean);
+  const poss=pts.reduce((s,p)=>s+p.poss,0);
+  const conf=pts.reduce((s,p)=>s+p.conf,0);
+  const capCls=poss>t.cap?'cap-over':poss>=t.cap?'cap-warn':'cap-ok';
+  el.classList.toggle('over-cap',poss>t.cap);
+  el.innerHTML=`
+    <div class="table-badge">TABLE ${t.id}</div>
+    <div class="table-header">
+      <input class="table-name-input" value="${esc(t.name)}" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap ${capCls}">${poss}/${t.cap}</span>
+        ${conf<poss?`<span class="cap-conf">${conf}✅</span>`:''}
+      </div>
+      ${pts.length>0?`<button class="clear-table-btn" title="Clear table">✕</button>`:`<button class="del-table-btn" title="Delete empty table">🗑</button>`}
+    </div>
+    <div class="table-guests">${pts.length===0?'<div class="table-empty">drop parties here</div>':pts.map(p=>partyHTML(p)).join('')}</div>`;
+  el.querySelector('.table-name-input').addEventListener('input',e=>{t.name=e.target.value;});
+  const clearBtn=el.querySelector('.clear-table-btn');
+  if(clearBtn) clearBtn.addEventListener('click',()=>{ t.pids=[]; refresh(); });
+  const delBtn=el.querySelector('.del-table-btn');
+  if(delBtn) delBtn.addEventListener('click',()=>{
+    const idx=tables.findIndex(x=>x.id===t.id);
+    if(idx!==-1) tables.splice(idx,1);
+    buildFloor(); updateStats();
+  });
+  el.querySelectorAll('.party-card').forEach(card=>{
+    card.addEventListener('dragstart',e=>{dragId=parseInt(card.dataset.pid);dragFrom=t.id;setTimeout(()=>card.classList.add('dragging'),0);e.dataTransfer.effectAllowed='move';});
+    card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+  });
+}
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function renderSidebar(){
+  const q=document.getElementById('searchBox').value.toLowerCase();
+  const asgn=assignedSet();
+  const vis=P.filter(p=>{
+    if(asgn.has(p.id))return false;
+    if(activeFilter==='bride'&&p.s!=='bride')return false;
+    if(activeFilter==='groom'&&p.s!=='groom')return false;
+    if(activeFilter==='yes'&&p.rsvp!=='yes')return false;
+    if(activeFilter==='pending'&&p.rsvp!=='pending')return false;
+    if(q&&!p.n.toLowerCase().includes(q))return false;
+    return true;
+  });
+  const ul=document.getElementById('unassignedList');
+  ul.innerHTML=vis.length===0?'<div style="font-size:11px;color:rgba(255,255,255,.2);padding:14px;text-align:center;font-style:italic;">All parties assigned! 🎉</div>':vis.map(p=>partyHTML(p)).join('');
+  ul.querySelectorAll('.party-card').forEach(card=>{
+    card.addEventListener('dragstart',e=>{dragId=parseInt(card.dataset.pid);dragFrom=null;setTimeout(()=>card.classList.add('dragging'),0);e.dataTransfer.effectAllowed='move';});
+    card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+  });
+  updateStats();
+}
+
+function updateStats(){
+  const asgn=assignedSet();
+  const un=P.filter(p=>!asgn.has(p.id));
+  const totConf=P.reduce((s,p)=>s+p.conf,0)+2;
+  const totPoss=P.reduce((s,p)=>s+p.poss,0)+2;
+  const unConf=un.reduce((s,p)=>s+p.conf,0);
+  const unPoss=un.reduce((s,p)=>s+p.poss,0);
+  document.getElementById('sidebarStats').innerHTML=
+    `<span>${unConf} confirmed unassigned</span><span>${unPoss} possible unassigned</span>`;
+  document.getElementById('topStats').innerHTML=
+    `<span class="stat-line" style="color:#9ecfa2">${totConf-unConf} confirmed seated</span>
+     <span class="stat-line" style="color:#d4aa5a">${totPoss-unPoss} max possible</span>
+     <span class="stat-line" style="font-size:9px;color:rgba(255,255,255,.2)">${tables.length} tables</span>`;
+}
+
+function setFilter(f){
+  activeFilter=f;
+  const m={all:'fa',bride:'fb',groom:'fg',yes:'fyes',pending:'fpend'};
+  ['all','bride','groom','yes','pending'].forEach(x=>{
+    const b=document.getElementById('f-'+x);b.className='filter-btn';
+    if(x===f)b.classList.add(m[x]);
+  });
+  renderSidebar();
+}
+
+// ── DRAG & DROP ───────────────────────────────────────────────────────────────
+function setupTableDrop(el,tid){
+  el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('drop-active');});
+  el.addEventListener('dragleave',e=>{if(!el.contains(e.relatedTarget))el.classList.remove('drop-active');});
+  el.addEventListener('drop',e=>{
+    e.preventDefault();el.classList.remove('drop-active');
+    if(dragId==null)return;
+    if(dragFrom!==null){const src=tables.find(t=>t.id===dragFrom);if(src)src.pids=src.pids.filter(id=>id!==dragId);}
+    const tgt=tables.find(t=>t.id===tid);
+    if(tgt&&!tgt.pids.includes(dragId))tgt.pids.push(dragId);
+    dragId=null;dragFrom=null;refresh();
+  });
+}
+document.getElementById('unassignedList').addEventListener('dragover',e=>e.preventDefault());
+document.getElementById('unassignedList').addEventListener('drop',e=>{
+  e.preventDefault();if(dragId==null)return;
+  if(dragFrom!==null){const src=tables.find(t=>t.id===dragFrom);if(src)src.pids=src.pids.filter(id=>id!==dragId);}
+  dragId=null;dragFrom=null;refresh();
+});
+
+// ── SAVE TO FILE ──────────────────────────────────────────────────────────────
+function saveToFile(){
+  const btn=document.getElementById('saveBtn');
+  btn.textContent='💾 Saving…'; btn.classList.add('saving');
+
+  const titleEl = document.getElementById('eventTitle');
+  const dateEl  = document.getElementById('eventDate');
+  const sw1El   = document.getElementById('sw1');
+  const sw2El   = document.getElementById('sw2');
+
+  const pSrc = 'const P=[\n' + P.map(p=>{
+    const keys=['id','n','conf','poss','rsvp','s','imm','wp','note'];
+    const parts = keys.map(k=>{ const v=p[k]; return `${k}:${typeof v==='string'?JSON.stringify(v):v}`; });
+    return '  {'+parts.join(',')+'}';
+  }).join(',\n') + '\n];';
+
+  const tSrc = 'const tables=[\n' + tables.map(t=>{
+    return `  {id:${t.id},name:${JSON.stringify(t.name)},cap:${t.cap},pids:[${t.pids.join(',')}]}`;
+  }).join(',\n') + '\n];';
+
+  let html = document.documentElement.outerHTML;
+  html = html.replace(/const P=\[[\s\S]*?\n\];/, pSrc);
+  html = html.replace(/const tables=\[[\s\S]*?\n\];/, tSrc);
+
+  // Persist displayed header text into the HTML source
+  html = html.replace(/id="eventTitle"[^>]*>[^<]*</, `id="eventTitle">${titleEl.textContent}<`);
+  html = html.replace(/id="eventDate"[^>]*>[^<]*</, `id="eventDate">${dateEl.textContent}<`);
+  html = html.replace(/id="sw1"[^>]*>[^<]*</, `id="sw1">${sw1El.textContent}<`);
+  html = html.replace(/id="sw2"[^>]*>[^<]*</, `id="sw2">${sw2El.textContent}<`);
+
+  // On subsequent saves, don't show setup modal again
+  html = html.replace('class="modal-overlay" id="setupOverlay"', 'class="modal-overlay hidden" id="setupOverlay"');
+
+  const blob = new Blob([html], {type:'text/html'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'seating_chart.html'; a.click();
+  URL.revokeObjectURL(url);
+
+  setTimeout(()=>{
+    btn.textContent='✅ Saved'; btn.classList.remove('saving'); btn.classList.add('saved');
+    setTimeout(()=>{ btn.textContent='💾 Save'; btn.classList.remove('saved'); }, 2000);
+  }, 400);
+}
+
+// ── BUILD FLOOR ───────────────────────────────────────────────────────────────
+function buildFloor(){
+  const floor=document.getElementById('floor');
+  floor.querySelectorAll('.table-card').forEach(el=>el.remove());
+  tables.forEach(t=>{
+    const el=document.createElement('div');el.className='table-card';el.id='t'+t.id;
+    floor.appendChild(el);renderTable(t);setupTableDrop(el,t.id);
+  });
+  applyHideFull();
+}
+function refresh(){tables.forEach(t=>renderTable(t));renderSidebar();applyHideFull();}
+
+// Don't auto-build on load — wait for setup modal
+renderSidebar();
+</script>
+</body>
+</html>
