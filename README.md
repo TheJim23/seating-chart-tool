@@ -36,8 +36,16 @@ A beautiful, fully offline drag-and-drop wedding seating chart — no account, n
 ### Managing Tables
 - Click **＋ Add Table** to add more tables at any time
 - Empty tables show a **🗑** button to delete them
-- Click any table's name field to give it a custom name
+- Click the **table number** (e.g. `TABLE 3`) to edit it inline — useful if your venue uses non-sequential numbering
+- **Drag the ⠿ badge** on any table header to reorder tables on the floor
+- Click any table's name field to give it a custom name (shown below the number)
 - **Hide Full Tables** button dims fully-seated tables so you can focus on open spots
+
+### Printing
+- Click **🖨 Print List** to open the print dialog with a clean, card-per-table layout
+- Each card shows the table number, optional name, and every seated guest listed individually
+- Empty tables are excluded automatically
+- The interactive UI is hidden during print — only the guest list cards appear on paper
 
 ### RSVP Color Coding
 | Color | Meaning |
@@ -56,7 +64,6 @@ A beautiful, fully offline drag-and-drop wedding seating chart — no account, n
 ## Tips
 
 - The capacity counter (e.g. `6/8`) turns **amber** at full capacity and **red** if over
-- You can print the floor plan with **Ctrl+P** (sidebar hides automatically)
 - The "Side A / Side B" labels are fully generic — use them however makes sense for your event (family sides, friend groups, etc.)
 - There's no limit on guests, tables, or saves
 

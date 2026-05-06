@@ -80,7 +80,10 @@
   .table-card.drop-active{border-color:var(--gold);background:rgba(201,149,59,.05);}
   .table-card.over-cap{border-color:rgba(212,104,122,.5)!important;}
   .table-header{display:flex;align-items:center;gap:6px;flex-shrink:0;}
-  .table-badge{font-size:8px;letter-spacing:.2em;color:rgba(201,149,59,.45);text-transform:uppercase;font-weight:600;margin-bottom:2px;padding-left:1px;}
+  .table-badge{font-size:8px;letter-spacing:.2em;color:rgba(201,149,59,.45);text-transform:uppercase;font-weight:600;margin-bottom:2px;padding-left:1px;cursor:grab;user-select:none;display:flex;align-items:center;gap:4px;}
+  .table-num-input{background:transparent;border:none;border-bottom:1px dashed rgba(201,149,59,.3);color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;width:2.5ch;outline:none;padding:0;cursor:text;text-align:center;}
+  .table-num-input:focus{border-bottom-color:rgba(201,149,59,.7);}
+  .table-card.table-drag-over{outline:2px dashed rgba(91,143,168,.5);outline-offset:2px;}
   .clear-table-btn{margin-left:2px;flex-shrink:0;background:rgba(212,104,122,.12);border:1px solid rgba(212,104,122,.25);color:rgba(212,104,122,.6);font-size:9px;padding:2px 6px;border-radius:3px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:.04em;transition:all .15s;line-height:1;}
   .clear-table-btn:hover{background:rgba(212,104,122,.3);color:var(--rose);border-color:var(--rose);}
   .table-name-input{flex:1;background:transparent;border:none;border-bottom:1px solid transparent;color:var(--champagne);font-family:'DM Mono',monospace;font-size:10px;outline:none;padding:1px 2px;transition:border-color .15s;}
@@ -188,13 +191,23 @@
   .setup-banner strong{color:var(--gold);}
   .setup-banner code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:3px;font-size:10px;color:var(--champagne);}
 
+  #print-view{display:none;}
+
   @media print{
     body{background:white;color:black;}body::before{display:none;}
-    .sidebar{display:none;}.app{display:block;}.main{overflow:visible;}
-    .floor{background:#f9f9f9;border:1px solid #ddd;}
-    .table-card{border:1px solid #ccc;background:white;break-inside:avoid;}
-    .party-card{border-left-width:2px;background:#fafafa;}
-    .party-name,.sweetheart-names,.top-bar h1,.table-name-input{color:black;}
+    .app{display:none!important;}.modal-overlay{display:none!important;}
+    #print-view{display:block;padding:20px;font-family:'DM Mono',monospace;}
+    .pv-header{text-align:center;margin-bottom:22px;padding-bottom:12px;border-bottom:2px solid #c9953b;}
+    .pv-title{font-family:'Playfair Display',serif;font-size:20px;color:#1c1410;}
+    .pv-date{font-size:9px;letter-spacing:.14em;color:#c9953b;margin-top:4px;text-transform:uppercase;}
+    .pv-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+    .pc{border:1px solid #ccc;border-radius:6px;padding:10px 13px;break-inside:avoid;}
+    .pc-header{border-bottom:1px solid #e8dfc8;padding-bottom:5px;margin-bottom:7px;}
+    .pc-label{font-size:7.5px;letter-spacing:.22em;text-transform:uppercase;color:#c9953b;font-weight:600;}
+    .pc-name{font-family:'Playfair Display',serif;font-size:11px;color:#1c1410;margin-top:2px;}
+    .pc-guests{list-style:none;padding:0;margin:0;}
+    .pc-guests li{font-size:10px;color:#1c1410;padding:2.5px 0;border-bottom:1px solid #f0ebe0;line-height:1.35;}
+    .pc-guests li:last-child{border-bottom:none;}
   }
 </style>
 </head>
@@ -235,6 +248,7 @@
     <div class="floor-toolbar">
       <button class="btn-add-table" onclick="addTable()">＋ Add Table</button>
       <button class="btn-hide-full" id="hideFullBtn" onclick="toggleHideFull()">Hide Full Tables</button>
+      <button class="btn-hide-full" onclick="openPrint()">🖨 Print List</button>
     </div>
     <div class="floor" id="floor">
       <div class="sweetheart-row">
@@ -251,10 +265,12 @@
       <div class="legend-item"><div class="legend-dot" style="background:var(--bride)"></div>Side A</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--groom)"></div>Side B</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Wedding Party ★</div>
-      <div class="legend-item" style="margin-left:auto;font-size:9px;color:rgba(255,255,255,.18);">drag to rearrange · click table name to rename</div>
+      <div class="legend-item" style="margin-left:auto;font-size:9px;color:rgba(255,255,255,.18);">drag ⠿ badge to reorder tables · drag guests to assign · click name to rename</div>
     </div>
   </div>
 </div>
+
+<div id="print-view"></div>
 
 <!-- EDIT PARTY MODAL -->
 <div class="modal-overlay hidden" id="editOverlay">
@@ -358,7 +374,7 @@ const tables=[
 ];
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let activeFilter='all',dragId=null,dragFrom=null;
+let activeFilter='all',dragId=null,dragFrom=null,tableDragId=null;
 let nextSyntheticId=100;
 let hideFull=false;
 const byId=id=>P.find(p=>p.id===id);
@@ -383,7 +399,7 @@ function applySetup(){
 
   // Build starter tables
   tables.length = 0;
-  for(let i=1;i<=numT;i++) tables.push({id:i,name:'',cap,pids:[]});
+  for(let i=1;i<=numT;i++) tables.push({id:i,num:String(i),name:'',cap,pids:[]});
 
   document.getElementById('setupOverlay').classList.add('hidden');
   buildFloor();
@@ -394,7 +410,7 @@ function applySetup(){
 function addTable(){
   const newId = tables.length > 0 ? Math.max(...tables.map(t=>t.id)) + 1 : 1;
   const cap   = tables.length > 0 ? tables[0].cap : 8;
-  tables.push({id:newId, name:'', cap, pids:[]});
+  tables.push({id:newId, num:String(newId), name:'', cap, pids:[]});
   buildFloor();
   updateStats();
   setTimeout(()=>{
@@ -545,7 +561,7 @@ function renderTable(t){
   const capCls=poss>t.cap?'cap-over':poss>=t.cap?'cap-warn':'cap-ok';
   el.classList.toggle('over-cap',poss>t.cap);
   el.innerHTML=`
-    <div class="table-badge">TABLE ${t.id}</div>
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="${esc(String(t.num??t.id))}" placeholder="#"></div>
     <div class="table-header">
       <input class="table-name-input" value="${esc(t.name)}" placeholder="Table name…">
       <div class="table-cap-wrap">
@@ -556,6 +572,13 @@ function renderTable(t){
     </div>
     <div class="table-guests">${pts.length===0?'<div class="table-empty">drop parties here</div>':pts.map(p=>partyHTML(p)).join('')}</div>`;
   el.querySelector('.table-name-input').addEventListener('input',e=>{t.name=e.target.value;});
+  const numInp=el.querySelector('.table-num-input');
+  numInp.addEventListener('input',e=>{t.num=e.target.value;});
+  numInp.addEventListener('mousedown',e=>e.stopPropagation());
+  numInp.addEventListener('click',e=>e.stopPropagation());
+  const badge=el.querySelector('.table-badge');
+  badge.addEventListener('dragstart',e=>{if(e.target===numInp){e.preventDefault();return;}tableDragId=t.id;dragId=null;e.dataTransfer.effectAllowed='move';});
+  badge.addEventListener('dragend',()=>{tableDragId=null;});
   const clearBtn=el.querySelector('.clear-table-btn');
   if(clearBtn) clearBtn.addEventListener('click',()=>{ t.pids=[]; refresh(); });
   const delBtn=el.querySelector('.del-table-btn');
@@ -619,10 +642,23 @@ function setFilter(f){
 
 // ── DRAG & DROP ───────────────────────────────────────────────────────────────
 function setupTableDrop(el,tid){
-  el.addEventListener('dragover',e=>{e.preventDefault();el.classList.add('drop-active');});
-  el.addEventListener('dragleave',e=>{if(!el.contains(e.relatedTarget))el.classList.remove('drop-active');});
+  el.addEventListener('dragover',e=>{
+    e.preventDefault();
+    if(tableDragId!==null&&tableDragId!==tid){el.classList.add('table-drag-over');}
+    else if(dragId!==null){el.classList.add('drop-active');}
+  });
+  el.addEventListener('dragleave',e=>{
+    if(!el.contains(e.relatedTarget)){el.classList.remove('drop-active');el.classList.remove('table-drag-over');}
+  });
   el.addEventListener('drop',e=>{
-    e.preventDefault();el.classList.remove('drop-active');
+    e.preventDefault();el.classList.remove('drop-active');el.classList.remove('table-drag-over');
+    if(tableDragId!==null){
+      if(tableDragId!==tid){
+        const fi=tables.findIndex(t=>t.id===tableDragId),ti=tables.findIndex(t=>t.id===tid);
+        if(fi!==-1&&ti!==-1){const[m]=tables.splice(fi,1);tables.splice(ti,0,m);buildFloor();updateStats();}
+      }
+      tableDragId=null;return;
+    }
     if(dragId==null)return;
     if(dragFrom!==null){const src=tables.find(t=>t.id===dragFrom);if(src)src.pids=src.pids.filter(id=>id!==dragId);}
     const tgt=tables.find(t=>t.id===tid);
@@ -654,7 +690,7 @@ function saveToFile(){
   }).join(',\n') + '\n];';
 
   const tSrc = 'const tables=[\n' + tables.map(t=>{
-    return `  {id:${t.id},name:${JSON.stringify(t.name)},cap:${t.cap},pids:[${t.pids.join(',')}]}`;
+    return `  {id:${t.id},num:${JSON.stringify(String(t.num??t.id))},name:${JSON.stringify(t.name)},cap:${t.cap},pids:[${t.pids.join(',')}]}`;
   }).join(',\n') + '\n];';
 
   let html = document.documentElement.outerHTML;
@@ -693,6 +729,28 @@ function buildFloor(){
   applyHideFull();
 }
 function refresh(){tables.forEach(t=>renderTable(t));renderSidebar();applyHideFull();}
+
+function openPrint(){
+  const sorted=[...tables].sort((a,b)=>{
+    const na=parseInt(a.num),nb=parseInt(b.num);
+    if(!isNaN(na)&&!isNaN(nb))return na-nb;
+    return String(a.num??'').localeCompare(String(b.num??''));
+  });
+  const cards=sorted.filter(t=>t.pids.length>0).map(t=>{
+    const pts=t.pids.map(byId).filter(Boolean);
+    const names=pts.flatMap(p=>p.n.split(',').map(s=>s.trim()).filter(Boolean));
+    const label=t.num?`TABLE ${esc(String(t.num))}`:'TABLE';
+    const nameRow=t.name?`<div class="pc-name">${esc(t.name)}</div>`:'';
+    return`<div class="pc"><div class="pc-header"><div class="pc-label">${label}</div>${nameRow}</div><ul class="pc-guests">${names.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></div>`;
+  }).join('');
+  const titleEl=document.querySelector('#eventTitle,.top-bar h1');
+  const dateEl=document.querySelector('#eventDate,.top-bar .date');
+  const titleTxt=titleEl?titleEl.textContent:'';
+  const dateTxt=dateEl?dateEl.textContent:'';
+  document.getElementById('print-view').innerHTML=
+    `<div class="pv-header"><div class="pv-title">${esc(titleTxt)}</div><div class="pv-date">${esc(dateTxt)}</div></div><div class="pv-cards">${cards}</div>`;
+  window.print();
+}
 
 // Don't auto-build on load — wait for setup modal
 renderSidebar();
