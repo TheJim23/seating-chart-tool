@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>💍 Wedding Seating Chart</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<title>Seating Chart Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;family=DM+Mono:wght@300;400;500&amp;display=swap" rel="stylesheet">
 <style>
   :root {
     --champagne:#f5e6c8;--blush:#e8b4b8;--gold:#c9953b;--deep:#1c1410;
@@ -131,6 +129,7 @@
   .ep-field select,.ep-field input[type=text]{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--cream);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:4px;outline:none;width:100%;}
   .ep-field select:focus,.ep-field input[type=text]:focus{border-color:rgba(201,149,59,.5);}
   .ep-field select option{background:#1e1509;}
+  .ep-note input{grid-column:1/-1;}
 
   /* Member list */
   .ep-members-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
@@ -159,7 +158,8 @@
   .btn-danger{background:rgba(212,104,122,.12);border:1px solid rgba(212,104,122,.3);color:rgba(212,104,122,.7);font-family:'DM Mono',monospace;font-size:10px;padding:7px 14px;border-radius:4px;cursor:pointer;transition:all .15s;}
   .btn-danger:hover{background:rgba(212,104,122,.28);color:var(--rose);}
 
-  /* Add guest panel */
+  /* Add guest panel (top of sidebar) */
+  .add-guest-panel{padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
   .add-guest-row{display:flex;gap:5px;margin-top:6px;}
   .add-guest-input{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--cream);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:4px;outline:none;}
   .add-guest-input:focus{border-color:rgba(201,149,59,.4);}
@@ -182,20 +182,104 @@
   .btn-hide-full.active{background:rgba(91,143,168,.15);border-color:rgba(91,143,168,.4);color:#8bbdd4;}
   .table-card.hidden-full{display:none;}
 
-  /* DELETE TABLE button */
+  /* DELETE TABLE button (shown when table empty) */
   .del-table-btn{margin-left:2px;flex-shrink:0;background:rgba(212,104,122,.08);border:1px solid rgba(212,104,122,.18);color:rgba(212,104,122,.4);font-size:9px;padding:2px 6px;border-radius:3px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:.04em;transition:all .15s;line-height:1;}
   .del-table-btn:hover{background:rgba(212,104,122,.25);color:var(--rose);border-color:var(--rose);}
 
-  /* SETUP BANNER */
-  .setup-banner{background:rgba(201,149,59,.08);border:1px solid rgba(201,149,59,.25);border-radius:6px;padding:12px 16px;margin-bottom:4px;font-size:11px;color:rgba(255,255,255,.5);line-height:1.7;}
-  .setup-banner strong{color:var(--gold);}
-  .setup-banner code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:3px;font-size:10px;color:var(--champagne);}
+  /* EMPTY GRID CELL */
+  .table-empty-cell{border:1px dashed rgba(255,255,255,.05);border-radius:6px;min-height:105px;transition:border-color .15s,background .15s;}
+  .table-empty-cell.table-drag-over{border-color:rgba(91,143,168,.5);background:rgba(91,143,168,.04);}
+  .floor.stagger [data-col="1"]{transform:translateY(65px);}
+  .floor.stagger{padding-bottom:80px;}
 
   #print-view{display:none;}
 
+  /* MEAL BADGES */
+  .meal-badge{font-size:8px;padding:1px 5px;border-radius:8px;letter-spacing:.04em;font-weight:600;white-space:nowrap;}
+  .meal-CHK{background:rgba(201,149,59,.2);color:#d4aa5a;}
+  .meal-SWP{background:rgba(122,158,126,.2);color:#9ecfa2;}
+  .meal-KDM{background:rgba(160,130,220,.2);color:#c0a0f0;}
+  .party-meals{margin-top:3px;display:flex;gap:3px;flex-wrap:wrap;}
+
+  /* ASSIGN SEATS BUTTON + TABLE FOOTER */
+  .table-footer{padding:5px 0 2px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;margin-top:4px;}
+  .seats-filled{font-size:8px;color:rgba(255,255,255,.2);letter-spacing:.05em;}
+  .assign-seats-btn{background:rgba(91,143,168,.12);border:1px solid rgba(91,143,168,.3);color:#8bbdd4;font-size:9px;padding:2px 9px;border-radius:3px;cursor:pointer;font-family:'DM Mono',monospace;letter-spacing:.05em;transition:all .15s;line-height:1.4;}
+  .assign-seats-btn:hover{background:rgba(91,143,168,.28);color:#b8d8ec;}
+
+  /* SEAT MODE OVERLAY */
+  .seat-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+  .seat-overlay.hidden{display:none;}
+  .seat-modal{background:#18100a;border:1px solid rgba(201,149,59,.25);border-radius:12px;width:97vw;max-width:1260px;height:92vh;display:flex;flex-direction:column;box-shadow:0 32px 90px rgba(0,0,0,.85);}
+  .seat-modal-head{padding:15px 22px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-shrink:0;}
+  .seat-modal-head h3{font-family:'Playfair Display',serif;font-size:17px;color:var(--champagne);}
+  .seat-modal-sub{font-size:9px;color:rgba(255,255,255,.28);letter-spacing:.1em;margin-top:2px;}
+  .seat-modal-body{flex:1;display:flex;overflow:hidden;min-height:0;}
+  .seat-modal-foot{padding:11px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;}
+  .seat-spatial-area{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:16px;}
+  .seat-grid{display:grid;grid-template-columns:220px 380px 220px;grid-template-rows:220px 380px 220px;gap:12px;}
+  .seat-grid-cell{display:flex;align-items:center;justify-content:center;}
+  .round-table-wrap.small .seat-slot{width:55px;}
+  .round-table-wrap.small .seat-num{font-size:7px;}
+  .round-table-wrap.small .seat-name{font-size:7.5px;}
+  .round-table-wrap.small .meal-badge{font-size:6.5px;padding:1px 3px;}
+  .round-table-wrap.small .seat-empty-hint{font-size:7px;}
+  .round-table-wrap.small .seat-slot-inner{min-height:34px;padding:3px 4px;gap:1px;}
+  .round-table-wrap.small .round-table-surface{width:108px;height:108px;}
+  .round-table-wrap.small .rt-label{font-size:8px;}
+
+  /* NEARBY PANEL */
+  .seat-side-panel{padding:14px 12px;overflow-y:auto;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:7px;}
+  .seat-side-panel.right{border-right:none;border-left:1px solid var(--border);}
+  .seat-panel-title{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.28);margin-bottom:2px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+  .nearby-table-card{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:5px;padding:8px 10px;}
+  .nearby-table-label{font-size:8px;letter-spacing:.18em;color:rgba(201,149,59,.5);text-transform:uppercase;font-weight:600;margin-bottom:5px;}
+  .nearby-person{font-size:9px;color:rgba(255,255,255,.5);padding:2px 0;display:flex;align-items:center;gap:5px;border-bottom:1px solid rgba(255,255,255,.04);}
+  .nearby-person:last-child{border-bottom:none;}
+
+  /* ROUND TABLE CENTER */
+  .seat-center{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;overflow:hidden;}
+  .round-table-wrap{position:relative;width:440px;height:440px;flex-shrink:0;}
+  .round-table-surface{position:absolute;width:190px;height:190px;border-radius:50%;background:rgba(201,149,59,.05);border:2px solid rgba(201,149,59,.18);top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;pointer-events:none;}
+  .rt-label{font-size:11px;letter-spacing:.13em;color:rgba(201,149,59,.4);text-transform:uppercase;text-align:center;line-height:1.4;}
+  .seat-slot{position:absolute;width:92px;transform:translate(-50%,-50%);}
+  .seat-slot-inner{position:relative;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.14);border-radius:6px;padding:5px 7px;text-align:center;transition:all .15s;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+  .seat-slot-inner.filled{background:rgba(255,255,255,.07);border-style:solid;border-color:rgba(201,149,59,.28);cursor:grab;}
+  .seat-slot-inner.drag-over{border-color:var(--gold)!important;background:rgba(201,149,59,.12)!important;}
+  .seat-num{font-size:8px;color:rgba(201,149,59,.55);letter-spacing:.1em;font-weight:600;}
+  .seat-name{font-size:9px;color:var(--champagne);line-height:1.2;word-break:break-word;margin-top:1px;}
+  .seat-empty-hint{font-size:8px;color:rgba(255,255,255,.14);font-style:italic;}
+  .seat-unassign-btn{position:absolute;top:2px;right:3px;background:transparent;border:none;color:rgba(212,104,122,.35);font-size:10px;cursor:pointer;padding:0;line-height:1;transition:color .15s;}
+  .seat-unassign-btn:hover{color:var(--rose);}
+
+  /* POOL PANEL */
+  .pool-person{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:4px;padding:6px 9px;cursor:grab;transition:all .12s;display:flex;align-items:center;gap:7px;user-select:none;}
+  .pool-person:hover:not(.seated){filter:brightness(1.3);}
+  .pool-person.seated{opacity:.4;cursor:default;background:rgba(122,158,126,.05);border-color:rgba(122,158,126,.2);}
+  .pool-person.dragging{opacity:.25;}
+  .pool-name{font-size:10px;color:var(--champagne);line-height:1.2;}
+
+  /* PRINT TABLE DIAGRAMS */
+  .ptd-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+  .ptd-cell{display:flex;flex-direction:column;align-items:center;padding:10px 6px 6px;border:1px solid #ccc;border-radius:6px;break-inside:avoid;}
+  .ptd-cell-label{font-size:7.5px;letter-spacing:.22em;text-transform:uppercase;color:#c9953b;font-weight:600;margin-bottom:6px;}
+  .ptd-empty{border:none!important;}
+  .ptd-wrap{width:300px!important;height:300px!important;}
+  .ptd-wrap .round-table-surface{width:52px!important;height:52px!important;background:rgba(201,149,59,.07)!important;border-color:rgba(201,149,59,.35)!important;}
+  .ptd-wrap .rt-label{font-size:6px!important;letter-spacing:.08em!important;color:rgba(201,149,59,.6)!important;line-height:1.2!important;}
+  .ptd-wrap .rt-num{font-size:18px!important;font-weight:700!important;color:rgba(201,149,59,.95)!important;line-height:1!important;display:block!important;}
+  .ptd-wrap .seat-slot{width:72px!important;}
+  .ptd-wrap .seat-slot-inner{min-height:28px!important;padding:3px 4px!important;gap:1px!important;background:rgba(255,255,255,.95)!important;border-color:#ccc!important;}
+  .ptd-wrap .seat-slot-inner.filled{border-color:#c9953b!important;}
+  .ptd-wrap .seat-num{font-size:6.5px!important;color:rgba(201,149,59,.6)!important;}
+  .ptd-wrap .seat-name{font-size:9px!important;color:#1c1410!important;line-height:1.25!important;overflow-wrap:break-word!important;}
+  .ptd-wrap .meal-badge{font-size:7px!important;padding:1px 3px!important;}
+  .ptd-wrap .seat-empty-hint{font-size:7px!important;}
+  .ptd-wrap .seat-unassign-btn{display:none!important;}
+
   @media print{
     body{background:white;color:black;}body::before{display:none;}
-    .app{display:none!important;}.modal-overlay{display:none!important;}
+    .app{display:none!important;}.modal-overlay{display:none!important;}.seat-overlay{display:none!important;}
     #print-view{display:block;padding:20px;font-family:'DM Mono',monospace;}
     .pv-header{text-align:center;margin-bottom:22px;padding-bottom:12px;border-bottom:2px solid #c9953b;}
     .pv-title{font-family:'Playfair Display',serif;font-size:20px;color:#1c1410;}
@@ -208,6 +292,8 @@
     .pc-guests{list-style:none;padding:0;margin:0;}
     .pc-guests li{font-size:10px;color:#1c1410;padding:2.5px 0;border-bottom:1px solid #f0ebe0;line-height:1.35;}
     .pc-guests li:last-child{border-bottom:none;}
+    .pc-empty{border:none!important;}
+    .seat-unassign-btn{display:none!important;}
   }
 </style>
 </head>
@@ -219,8 +305,8 @@
       <input class="search-box" id="searchBox" type="text" placeholder="Search guests…" oninput="renderSidebar()">
       <div class="filter-row">
         <button class="filter-btn fa" id="f-all" onclick="setFilter('all')">ALL</button>
-        <button class="filter-btn" id="f-bride" onclick="setFilter('bride')">💐 SIDE A</button>
-        <button class="filter-btn" id="f-groom" onclick="setFilter('groom')">🤵 SIDE B</button>
+        <button class="filter-btn" id="f-bride" onclick="setFilter('bride')">💐 BRIDE</button>
+        <button class="filter-btn" id="f-groom" onclick="setFilter('groom')">🤵 GROOM</button>
         <button class="filter-btn" id="f-yes" onclick="setFilter('yes')">✅ CONF</button>
         <button class="filter-btn" id="f-pending" onclick="setFilter('pending')">🔲 PENDING</button>
       </div>
@@ -232,15 +318,15 @@
         </div>
       </div>
     </div>
-    <div class="unassigned-list" id="unassignedList"></div>
-    <div class="sidebar-stats" id="sidebarStats"></div>
+    <div class="unassigned-list" id="unassignedList"><div style="font-size:11px;color:rgba(255,255,255,.2);padding:14px;text-align:center;font-style:italic;">All parties assigned! 🎉</div></div>
+    <div class="sidebar-stats" id="sidebarStats"><span>0 confirmed unassigned</span><span>0 possible unassigned</span></div>
   </div>
 
   <div class="main">
     <div class="top-bar">
       <div>
-        <h1 id="eventTitle">💍 Partner A &amp; Partner B</h1>
-        <div class="date" id="eventDate">DATE · VENUE · SEATING CHART</div>
+        <h1>Your Event Name</h1>
+        <div class="date">EVENT DATE · VENUE · SEATING CHART</div>
       </div>
       <div class="top-bar-right" id="topStats"></div>
       <button class="btn-save" id="saveBtn" onclick="saveToFile()">💾 Save</button>
@@ -248,44 +334,1033 @@
     <div class="floor-toolbar">
       <button class="btn-add-table" onclick="addTable()">＋ Add Table</button>
       <button class="btn-hide-full" id="hideFullBtn" onclick="toggleHideFull()">Hide Full Tables</button>
-      <button class="btn-hide-full" onclick="openPrint()">🖨 Print List</button>
+      <button class="btn-hide-full" id="staggerBtn" onclick="toggleStagger()">⬡ Stagger</button>
+      <button class="btn-hide-full" onclick="printSeatCharts()">🖨 List w/ Meals</button>
+      <button class="btn-hide-full" onclick="printListOnly()">🖨 List w/o Info</button>
+      <button class="btn-hide-full" onclick="printTableDiagrams()">🖨 Print Diagrams</button>
     </div>
     <div class="floor" id="floor">
       <div class="sweetheart-row">
         <div class="sweetheart-card">
           <span class="sw-label">✦ Sweetheart Table ✦</span>
-          <div class="sweetheart-names"><em id="sw1">Partner A</em> &amp; <em id="sw2">Partner B</em></div>
+          <div class="sweetheart-names"><em>Partner A</em> &amp; <em>Partner B</em></div>
         </div>
       </div>
+    <div class="table-card" id="t2" data-col="0">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="1" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-warn">8/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
     </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="28">
+    <button class="edit-btn" onclick="openEditModal(28,event)">✏️ edit</button>
+    <div class="party-name">Scott Mannstedt, Suzanne Mannstedt</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    <div class="party-note">Seat near Table 1</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="14">
+    <button class="edit-btn" onclick="openEditModal(14,event)">✏️ edit</button>
+    <div class="party-name">Pete Larson, Krista Larson</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span><span class="meal-badge meal-SWP">SWP</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="1">
+    <button class="edit-btn" onclick="openEditModal(1,event)">✏️ edit</button>
+    <div class="party-name">Rick Truex, Karen Truex</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="62">
+    <button class="edit-btn" onclick="openEditModal(62,event)">✏️ edit</button>
+    <div class="party-name">Andrea, Jim</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    <div class="party-note">Carly + Ryan McGowan declined</div>
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(2)">⊙ Assign Seats</button>
+      <span class="seats-filled">8/8 seated</span>
+    </div></div><div class="table-card" id="t1" data-col="1">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="11" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-warn">8/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="32">
+    <button class="edit-btn" onclick="openEditModal(32,event)">✏️ edit</button>
+    <div class="party-name">Todd Simonson, Cari Simonson</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="37">
+    <button class="edit-btn" onclick="openEditModal(37,event)">✏️ edit</button>
+    <div class="party-name">Gina Felstead, Ryan Horak, Arya, Harley-Ann</div>
+    <div class="party-meta">
+      <span class="party-count">4 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span><span class="meal-badge meal-KDM">2× KDM</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="39">
+    <button class="edit-btn" onclick="openEditModal(39,event)">✏️ edit</button>
+    <div class="party-name">Chad Blomstrom, Melanie Blomstrom</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(1)">⊙ Assign Seats</button>
+      <span class="seats-filled">8/8 seated</span>
+    </div></div><div class="table-card" id="t3" data-col="2">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="12" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-ok">7/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="33">
+    <button class="edit-btn" onclick="openEditModal(33,event)">✏️ edit</button>
+    <div class="party-name">Angela Olson, Bryan Olson</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="36">
+    <button class="edit-btn" onclick="openEditModal(36,event)">✏️ edit</button>
+    <div class="party-name">Alicia Brunson, Cody Brunson, Aubriella, Jayce, Aizlyn</div>
+    <div class="party-meta">
+      <span class="party-count">5 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span><span class="meal-badge meal-KDM">3× KDM</span></div>
+    
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(3)">⊙ Assign Seats</button>
+      <span class="seats-filled">7/8 seated</span>
+    </div></div><div class="table-card" id="t8" data-col="0">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="2" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-warn">8/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="18">
+    <button class="edit-btn" onclick="openEditModal(18,event)">✏️ edit</button>
+    <div class="party-name">Hannah Escobar, Rodrigo Escobar</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    <div class="party-note">⚠️ Dairy allergy (Hannah)</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="2">
+    <button class="edit-btn" onclick="openEditModal(2,event)">✏️ edit</button>
+    <div class="party-name">Matthew Truex, Maddie Dittmer</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="1100">
+    <button class="edit-btn" onclick="openEditModal(1100,event)">✏️ edit</button>
+    <div class="party-name">Taylor Truex</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-KDM">KDM</span></div>
+    <div class="party-note">Split from: Evie Truex, Riley Wolter, Taylor Truex</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="66">
+    <button class="edit-btn" onclick="openEditModal(66,event)">✏️ edit</button>
+    <div class="party-name">Ava Tjornhom</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    <div class="party-note">New via RSVP</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="3">
+    <button class="edit-btn" onclick="openEditModal(3,event)">✏️ edit</button>
+    <div class="party-name">Evie Truex, Riley Wolter</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(8)">⊙ Assign Seats</button>
+      <span class="seats-filled">8/8 seated</span>
+    </div></div><div class="table-card" id="t4" data-col="1">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="10" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-ok">7/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="26">
+    <button class="edit-btn" onclick="openEditModal(26,event)">✏️ edit</button>
+    <div class="party-name">Maddy Garrison, Noah Barcomb</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span><span class="meal-badge meal-KDM">KDM</span></div>
+    <div class="party-note">Noah Barcomb confirmed +1</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="27">
+    <button class="edit-btn" onclick="openEditModal(27,event)">✏️ edit</button>
+    <div class="party-name">Charlie Kane, Alex Waltz</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span><span class="meal-badge meal-SWP">SWP</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="25">
+    <button class="edit-btn" onclick="openEditModal(25,event)">✏️ edit</button>
+    <div class="party-name">Madeline Timba, Sean Fischer</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="19">
+    <button class="edit-btn" onclick="openEditModal(19,event)">✏️ edit</button>
+    <div class="party-name">Jon Bladel</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-SWP">SWP</span></div>
+    
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(4)">⊙ Assign Seats</button>
+      <span class="seats-filled">7/8 seated</span>
+    </div></div><div class="table-card" id="t6" data-col="2">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="13" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-warn">8/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="42">
+    <button class="edit-btn" onclick="openEditModal(42,event)">✏️ edit</button>
+    <div class="party-name">Elizabeth Daake, Ryan Daake</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    <div class="party-note">Nolan Daake declined</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="903">
+    <button class="edit-btn" onclick="openEditModal(903,event)">✏️ edit</button>
+    <div class="party-name">Terry Huffer, Shannon Huffer</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    <div class="party-note">Split from: Terry Huffer, Shannon Huffer, Kien Huffer, Arle Bishop, Sterling Bishop</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="44">
+    <button class="edit-btn" onclick="openEditModal(44,event)">✏️ edit</button>
+    <div class="party-name">Tristan Huffer, Ireland Flemmer</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="43">
+    <button class="edit-btn" onclick="openEditModal(43,event)">✏️ edit</button>
+    <div class="party-name">Stephanie Hoppe</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="34">
+    <button class="edit-btn" onclick="openEditModal(34,event)">✏️ edit</button>
+    <div class="party-name">Carrie Huffer</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(6)">⊙ Assign Seats</button>
+      <span class="seats-filled">8/8 seated</span>
+    </div></div><div class="table-card" id="t19" data-col="0">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="3" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-warn">8/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="5">
+    <button class="edit-btn" onclick="openEditModal(5,event)">✏️ edit</button>
+    <div class="party-name">Paul Busse</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="7">
+    <button class="edit-btn" onclick="openEditModal(7,event)">✏️ edit</button>
+    <div class="party-name">Hanna Busse</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="6">
+    <button class="edit-btn" onclick="openEditModal(6,event)">✏️ edit</button>
+    <div class="party-name">Tim Busse, Jaime Busse</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span><span class="meal-badge meal-SWP">SWP</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="12">
+    <button class="edit-btn" onclick="openEditModal(12,event)">✏️ edit</button>
+    <div class="party-name">Tom Truex, Judy Truex</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-SWP">2× SWP</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="11">
+    <button class="edit-btn" onclick="openEditModal(11,event)">✏️ edit</button>
+    <div class="party-name">Joan Davis, Mark Davis</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(19)">⊙ Assign Seats</button>
+      <span class="seats-filled">8/8 seated</span>
+    </div></div><div class="table-card" id="t9" data-col="1">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="9" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-ok">7/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="52">
+    <button class="edit-btn" onclick="openEditModal(52,event)">✏️ edit</button>
+    <div class="party-name">Sabrina Souravong, Annie Davis</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="54">
+    <button class="edit-btn" onclick="openEditModal(54,event)">✏️ edit</button>
+    <div class="party-name">Ali Abulizz, Libby Moore</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="63">
+    <button class="edit-btn" onclick="openEditModal(63,event)">✏️ edit</button>
+    <div class="party-name">Will Burney</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="56">
+    <button class="edit-btn" onclick="openEditModal(56,event)">✏️ edit</button>
+    <div class="party-name">Nook Tran, Tien Tran</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    <div class="party-note">Stella Tran declined</div>
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(9)">⊙ Assign Seats</button>
+      <span class="seats-filled">7/8 seated</span>
+    </div></div><div class="table-card" id="t5" data-col="2">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="14" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-warn">8/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="49">
+    <button class="edit-btn" onclick="openEditModal(49,event)">✏️ edit</button>
+    <div class="party-name">Matthew Gustavson, Isaac Gustavson</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-SWP">SWP</span><span class="meal-badge meal-KDM">KDM</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="50">
+    <button class="edit-btn" onclick="openEditModal(50,event)">✏️ edit</button>
+    <div class="party-name">Andrew Donovan, Mikinzie Blanck, Juno Donovan</div>
+    <div class="party-meta">
+      <span class="party-count">3 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span><span class="meal-badge meal-KDM">2× KDM</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="51">
+    <button class="edit-btn" onclick="openEditModal(51,event)">✏️ edit</button>
+    <div class="party-name">Hunter Nystrom, Thea Allen</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      <span class="party-wp">★ WP</span>
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="900">
+    <button class="edit-btn" onclick="openEditModal(900,event)">✏️ edit</button>
+    <div class="party-name">Carter Lange</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-KDM">KDM</span></div>
+    <div class="party-note">Split from: Kim Lange, Jason Lange, Carter Lange</div>
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(5)">⊙ Assign Seats</button>
+      <span class="seats-filled">8/8 seated</span>
+    </div></div><div class="table-card" id="t11" data-col="0">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="4" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-ok">6/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="901">
+    <button class="edit-btn" onclick="openEditModal(901,event)">✏️ edit</button>
+    <div class="party-name">Lydia</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    <div class="party-note">Split from: Andrea, Jim, Lydia, Abby Turnquist</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="53">
+    <button class="edit-btn" onclick="openEditModal(53,event)">✏️ edit</button>
+    <div class="party-name">Jesse Carstensen</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="55">
+    <button class="edit-btn" onclick="openEditModal(55,event)">✏️ edit</button>
+    <div class="party-name">Adam Andrews</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="23">
+    <button class="edit-btn" onclick="openEditModal(23,event)">✏️ edit</button>
+    <div class="party-name">Alaina Turnquist</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="22">
+    <button class="edit-btn" onclick="openEditModal(22,event)">✏️ edit</button>
+    <div class="party-name">Emily Adsem, Clayton Delp</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span><span class="meal-badge meal-SWP">SWP</span></div>
+    
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(11)">⊙ Assign Seats</button>
+      <span class="seats-filled">6/8 seated</span>
+    </div></div><div class="table-card" id="t14" data-col="1">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="8" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-ok">6/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="15">
+    <button class="edit-btn" onclick="openEditModal(15,event)">✏️ edit</button>
+    <div class="party-name">Bjorn Larson, Sarah Larson</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="16">
+    <button class="edit-btn" onclick="openEditModal(16,event)">✏️ edit</button>
+    <div class="party-name">Anders Larson, Kate Wohlberg</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    <div class="party-note">Kate Wohlberg confirmed +1</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="60">
+    <button class="edit-btn" onclick="openEditModal(60,event)">✏️ edit</button>
+    <div class="party-name">Nels Larson</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="902">
+    <button class="edit-btn" onclick="openEditModal(902,event)">✏️ edit</button>
+    <div class="party-name">Abby Turnquist</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    <div class="party-note">Split from: Andrea, Jim, Lydia, Abby Turnquist</div>
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(14)">⊙ Assign Seats</button>
+      <span class="seats-filled">6/8 seated</span>
+    </div></div><div class="table-card" id="t15" data-col="2">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="15" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-warn">8/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="47">
+    <button class="edit-btn" onclick="openEditModal(47,event)">✏️ edit</button>
+    <div class="party-name">Troy Tettam, Katie Tettam, Emily Tettam, Rheese Meyer, Jacob Tettam</div>
+    <div class="party-meta">
+      <span class="party-count">5 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span><span class="meal-badge meal-SWP">SWP</span><span class="meal-badge meal-KDM">2× KDM</span></div>
+    <div class="party-note">Rheese Meyer added via RSVP</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="48">
+    <button class="edit-btn" onclick="openEditModal(48,event)">✏️ edit</button>
+    <div class="party-name">Kim Lange, Jason Lange</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="46">
+    <button class="edit-btn" onclick="openEditModal(46,event)">✏️ edit</button>
+    <div class="party-name">Nancy Sack</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(15)">⊙ Assign Seats</button>
+      <span class="seats-filled">8/8 seated</span>
+    </div></div><div class="table-card" id="t10" data-col="0">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="5" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-ok">7/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="29">
+    <button class="edit-btn" onclick="openEditModal(29,event)">✏️ edit</button>
+    <div class="party-name">Lori, Drease McKinney</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="31">
+    <button class="edit-btn" onclick="openEditModal(31,event)">✏️ edit</button>
+    <div class="party-name">Tim Truex, Molly Sudenga Truex</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span><span class="meal-badge meal-SWP">SWP</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="1000">
+    <button class="edit-btn" onclick="openEditModal(1000,event)">✏️ edit</button>
+    <div class="party-name">Kasey</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    <div class="party-note">Split from: Lori, Kasey, Drease McKinney</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="1001">
+    <button class="edit-btn" onclick="openEditModal(1001,event)">✏️ edit</button>
+    <div class="party-name">Brill Truex</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    <div class="party-note">Split from: Tim Truex, Brill Truex</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="13">
+    <button class="edit-btn" onclick="openEditModal(13,event)">✏️ edit</button>
+    <div class="party-name">Jim Truex</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(10)">⊙ Assign Seats</button>
+      <span class="seats-filled">7/8 seated</span>
+    </div></div><div class="table-card" id="t17" data-col="1">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="7" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-warn">8/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="10">
+    <button class="edit-btn" onclick="openEditModal(10,event)">✏️ edit</button>
+    <div class="party-name">Kellie, Eric, Max, Eva Busse</div>
+    <div class="party-meta">
+      <span class="party-count">4 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-SWP">SWP</span><span class="meal-badge meal-CHK">CHK</span><span class="meal-badge meal-KDM">2× KDM</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="8">
+    <button class="edit-btn" onclick="openEditModal(8,event)">✏️ edit</button>
+    <div class="party-name">Peter Busse, Kimberly Busse</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    <div class="party-note">⚠️ Coconut allergy (Kimberly)</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="9">
+    <button class="edit-btn" onclick="openEditModal(9,event)">✏️ edit</button>
+    <div class="party-name">Tim Busse, Heidi Busse</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    <div class="party-note">Adeline + Eristain declined</div>
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(17)">⊙ Assign Seats</button>
+      <span class="seats-filled">8/8 seated</span>
+    </div></div><div class="table-card" id="t7" data-col="2">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="16" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-warn">8/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="57">
+    <button class="edit-btn" onclick="openEditModal(57,event)">✏️ edit</button>
+    <div class="party-name">Sandy Hyde, Creighton Wersaw</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="41">
+    <button class="edit-btn" onclick="openEditModal(41,event)">✏️ edit</button>
+    <div class="party-name">Tom, Diane, Luke, Josie Simonson</div>
+    <div class="party-meta">
+      <span class="party-count">4 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span><span class="meal-badge meal-SWP">SWP</span><span class="meal-badge meal-KDM">2× KDM</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="35">
+    <button class="edit-btn" onclick="openEditModal(35,event)">✏️ edit</button>
+    <div class="party-name">Karen Sandersfeld, Dennis Sandersfeld</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">2× CHK</span></div>
+    
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(7)">⊙ Assign Seats</button>
+      <span class="seats-filled">8/8 seated</span>
+    </div></div><div class="table-card" id="t13" data-col="0">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="6" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-ok">7/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="17">
+    <button class="edit-btn" onclick="openEditModal(17,event)">✏️ edit</button>
+    <div class="party-name">Caroline Wolden, Tessa Wolden, Esme Wolden, Rory Wolden, Linden Wolden</div>
+    <div class="party-meta">
+      <span class="party-count">5 guests</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span><span class="meal-badge meal-SWP">SWP</span><span class="meal-badge meal-KDM">3× KDM</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="906">
+    <button class="edit-btn" onclick="openEditModal(906,event)">✏️ edit</button>
+    <div class="party-name">Cynthia Garrison</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    <div class="party-note">Split from: Cynthia Garrison, Bianca Ramirez</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="59">
+    <button class="edit-btn" onclick="openEditModal(59,event)">✏️ edit</button>
+    <div class="party-name">Bianca Ramirez</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tb">💐 Bride</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(13)">⊙ Assign Seats</button>
+      <span class="seats-filled">7/8 seated</span>
+    </div></div><div class="table-empty-cell" data-row="5" data-col="1"></div><div class="table-card" id="t12" data-col="2">
+    <div class="table-badge" draggable="true"><span style="opacity:.4;font-size:10px;letter-spacing:0">⠿</span> TABLE <input class="table-num-input" type="text" value="17" placeholder="#"></div>
+    <div class="table-header">
+      <input class="table-name-input" value="" placeholder="Table name…">
+      <div class="table-cap-wrap">
+        <span class="table-cap cap-ok">6/8</span>
+        
+      </div>
+      <button class="clear-table-btn" title="Clear table">✕</button>
+    </div>
+    <div class="table-guests"><div class="party-card status-yes" draggable="true" data-pid="45">
+    <button class="edit-btn" onclick="openEditModal(45,event)">✏️ edit</button>
+    <div class="party-name">Kien Huffer, Arle Bishop, Sterling Bishop</div>
+    <div class="party-meta">
+      <span class="party-count">3 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">3× CHK</span></div>
+    
+  </div><div class="party-card status-yes" draggable="true" data-pid="905">
+    <button class="edit-btn" onclick="openEditModal(905,event)">✏️ edit</button>
+    <div class="party-name">Annabell, Arielle</div>
+    <div class="party-meta">
+      <span class="party-count">2 guests</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-KDM">2× KDM</span></div>
+    <div class="party-note">Split from: Alicia Brunson, Cody Brunson, Annabell, Arielle, Aubriella, Jayce, Aizlyn</div>
+  </div><div class="party-card status-yes" draggable="true" data-pid="38">
+    <button class="edit-btn" onclick="openEditModal(38,event)">✏️ edit</button>
+    <div class="party-name">Jordyn Simonson</div>
+    <div class="party-meta">
+      <span class="party-count">1 guest</span>
+      <span class="party-tag tg">🤵 Groom</span>
+      <span class="rsvp-badge rb-yes">✅ Confirmed</span>
+      
+    </div>
+    <div class="party-meals"><span class="meal-badge meal-CHK">CHK</span></div>
+    
+  </div></div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(12)">⊙ Assign Seats</button>
+      <span class="seats-filled">6/8 seated</span>
+    </div></div></div>
     <div class="legend">
       <div class="legend-item"><div class="legend-bar" style="background:rgba(122,158,126,.7)"></div>Confirmed ✅</div>
       <div class="legend-item"><div class="legend-bar" style="background:rgba(201,149,59,.7)"></div>Mixed / Partial</div>
       <div class="legend-item"><div class="legend-bar" style="background:rgba(255,255,255,.15)"></div>No Response</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--bride)"></div>Side A</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--groom)"></div>Side B</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--bride)"></div>Bride's Side</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--groom)"></div>Groom's Side</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Wedding Party ★</div>
-      <div class="legend-item" style="margin-left:auto;font-size:9px;color:rgba(255,255,255,.18);">drag ⠿ badge to reorder tables · drag guests to assign · click name to rename</div>
+      <div class="legend-item" style="margin-left:auto;font-size:9px;color:rgba(255,255,255,.18);">drag to rearrange · click table name to rename</div>
     </div>
   </div>
 </div>
 
-<div id="print-view"></div>
+<!-- SEAT MODE OVERLAY -->
+<div class="seat-overlay hidden" id="seatOverlay">
+  <div class="seat-modal">
+    <div class="seat-modal-head">
+      <div>
+        <h3 id="seatModalTitle">Table 11 — Seat Assignments</h3>
+        <div class="seat-modal-sub" id="seatModalSub">8 of 8 seats filled</div>
+      </div>
+      <button class="btn-cancel" style="margin-left:auto" onclick="closeSeatMode()">✕ Close</button>
+    </div>
+    <div class="seat-modal-body">
+      <div class="seat-spatial-area" id="seatSpatialArea"><div class="seat-grid">
+    <div class="seat-grid-cell" style="grid-column:1;grid-row:1;transform:translateY(-156px)"></div>
+    <div class="seat-grid-cell" style="grid-column:2;grid-row:1"></div>
+    <div class="seat-grid-cell" style="grid-column:3;grid-row:1;transform:translateY(-156px)"></div>
+    <div class="seat-grid-cell" style="grid-column:1;grid-row:2;transform:translateY(-156px)"><div class="round-table-wrap small" style="width:220px;height:220px;"><div class="round-table-surface"><div class="rt-label">TABLE<br><span class="rt-num">1</span></div></div><div class="seat-slot" style="left:110px;top:26px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">1</span><span class="seat-name">Rick Truex</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:169.39696961967px;top:50.60303038033001px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">2</span><span class="seat-name">Karen Truex</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:194px;top:110px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">3</span><span class="seat-name">Suzanne Mannstedt</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:169.39696961967px;top:169.39696961967px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">4</span><span class="seat-name">Scott Mannstedt</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:110px;top:194px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">5</span><span class="seat-name">Andrea Turnquist</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:50.60303038033001px;top:169.39696961967px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">6</span><span class="seat-name">Jim Turnquist</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:26px;top:110.00000000000001px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">7</span><span class="seat-name">Pete Larson</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:50.60303038033px;top:50.60303038033001px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">8</span><span class="seat-name">Krista Larson</span><span class="meal-badge meal-SWP">SWP</span></div></div></div></div>
+    <div class="seat-grid-cell" style="grid-column:2;grid-row:2">
+      <div class="round-table-wrap" id="roundTableWrap" style="width:380px;height:380px;"><div class="round-table-surface"><div class="rt-label">TABLE<br><span class="rt-num">11</span></div></div><div class="seat-slot" style="left:190px;top:42px;width:85px;"><div class="seat-slot-inner filled" draggable="true" ondragstart="seatSlotDragStart(event,0)" ondragend="seatSlotDragEnd(event)" ondragover="seatDragOver(event,0)" ondragleave="seatDragLeave(event)" ondrop="seatDrop(event,0)"><span class="seat-num">1</span><span class="seat-name">Arya Felstead</span><span class="meal-badge meal-KDM">KDM</span><button class="seat-unassign-btn" onclick="unassignSeat(0)" title="Remove">✕</button></div></div><div class="seat-slot" style="left:294.651803615609px;top:85.34819638439097px;width:85px;"><div class="seat-slot-inner filled" draggable="true" ondragstart="seatSlotDragStart(event,1)" ondragend="seatSlotDragEnd(event)" ondragover="seatDragOver(event,1)" ondragleave="seatDragLeave(event)" ondrop="seatDrop(event,1)"><span class="seat-num">2</span><span class="seat-name">Ryan Horak</span><span class="meal-badge meal-CHK">CHK</span><button class="seat-unassign-btn" onclick="unassignSeat(1)" title="Remove">✕</button></div></div><div class="seat-slot" style="left:338px;top:190px;width:85px;"><div class="seat-slot-inner filled" draggable="true" ondragstart="seatSlotDragStart(event,2)" ondragend="seatSlotDragEnd(event)" ondragover="seatDragOver(event,2)" ondragleave="seatDragLeave(event)" ondrop="seatDrop(event,2)"><span class="seat-num">3</span><span class="seat-name">Chad Blomstrom</span><span class="meal-badge meal-CHK">CHK</span><button class="seat-unassign-btn" onclick="unassignSeat(2)" title="Remove">✕</button></div></div><div class="seat-slot" style="left:294.651803615609px;top:294.651803615609px;width:85px;"><div class="seat-slot-inner filled" draggable="true" ondragstart="seatSlotDragStart(event,3)" ondragend="seatSlotDragEnd(event)" ondragover="seatDragOver(event,3)" ondragleave="seatDragLeave(event)" ondrop="seatDrop(event,3)"><span class="seat-num">4</span><span class="seat-name">Melanie Blomstrom</span><span class="meal-badge meal-CHK">CHK</span><button class="seat-unassign-btn" onclick="unassignSeat(3)" title="Remove">✕</button></div></div><div class="seat-slot" style="left:190px;top:338px;width:85px;"><div class="seat-slot-inner filled" draggable="true" ondragstart="seatSlotDragStart(event,4)" ondragend="seatSlotDragEnd(event)" ondragover="seatDragOver(event,4)" ondragleave="seatDragLeave(event)" ondrop="seatDrop(event,4)"><span class="seat-num">5</span><span class="seat-name">Todd Simonson</span><span class="meal-badge meal-CHK">CHK</span><button class="seat-unassign-btn" onclick="unassignSeat(4)" title="Remove">✕</button></div></div><div class="seat-slot" style="left:85.34819638439097px;top:294.651803615609px;width:85px;"><div class="seat-slot-inner filled" draggable="true" ondragstart="seatSlotDragStart(event,5)" ondragend="seatSlotDragEnd(event)" ondragover="seatDragOver(event,5)" ondragleave="seatDragLeave(event)" ondrop="seatDrop(event,5)"><span class="seat-num">6</span><span class="seat-name">Cari Simonson</span><span class="meal-badge meal-CHK">CHK</span><button class="seat-unassign-btn" onclick="unassignSeat(5)" title="Remove">✕</button></div></div><div class="seat-slot" style="left:42px;top:190.00000000000003px;width:85px;"><div class="seat-slot-inner filled" draggable="true" ondragstart="seatSlotDragStart(event,6)" ondragend="seatSlotDragEnd(event)" ondragover="seatDragOver(event,6)" ondragleave="seatDragLeave(event)" ondrop="seatDrop(event,6)"><span class="seat-num">7</span><span class="seat-name">Harley-Ann Felstead</span><span class="meal-badge meal-KDM">KDM</span><button class="seat-unassign-btn" onclick="unassignSeat(6)" title="Remove">✕</button></div></div><div class="seat-slot" style="left:85.34819638439095px;top:85.34819638439097px;width:85px;"><div class="seat-slot-inner filled" draggable="true" ondragstart="seatSlotDragStart(event,7)" ondragend="seatSlotDragEnd(event)" ondragover="seatDragOver(event,7)" ondragleave="seatDragLeave(event)" ondrop="seatDrop(event,7)"><span class="seat-num">8</span><span class="seat-name">Gina Felstead</span><span class="meal-badge meal-CHK">CHK</span><button class="seat-unassign-btn" onclick="unassignSeat(7)" title="Remove">✕</button></div></div></div>
+    </div>
+    <div class="seat-grid-cell" style="grid-column:3;grid-row:2;transform:translateY(-156px)"><div class="round-table-wrap small" style="width:220px;height:220px;"><div class="round-table-surface"><div class="rt-label">TABLE<br><span class="rt-num">12</span></div></div><div class="seat-slot" style="left:110px;top:26px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">1</span><span class="seat-name">Aubriella Brunson</span><span class="meal-badge meal-KDM">KDM</span></div></div><div class="seat-slot" style="left:175.6738445273145px;top:57.62685664386639px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">2</span><span class="seat-name">Cody Brunson</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:191.89394462327317px;top:128.69175845233042px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">3</span><span class="seat-name">Jayce Brunson</span><span class="meal-badge meal-KDM">KDM</span></div></div><div class="seat-slot" style="left:146.4462340858749px;top:185.6813849038032px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">4</span><span class="seat-name">Alicia Brunson</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:73.55376591412508px;top:185.68138490380318px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">5</span><span class="seat-name">Aizlyn Brunson</span><span class="meal-badge meal-KDM">KDM</span></div></div><div class="seat-slot" style="left:28.106055376726815px;top:128.69175845233042px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">6</span><span class="seat-name">Angela Olson</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:44.326155472685485px;top:57.6268566438664px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">7</span><span class="seat-name">Bryan Olson</span><span class="meal-badge meal-CHK">CHK</span></div></div></div></div>
+    <div class="seat-grid-cell" style="grid-column:1;grid-row:3;transform:translateY(-156px)"><div class="round-table-wrap small" style="width:220px;height:220px;"><div class="round-table-surface"><div class="rt-label">TABLE<br><span class="rt-num">2</span></div></div><div class="seat-slot" style="left:110px;top:26px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">1</span><span class="seat-name">Evie Truex</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:169.39696961967px;top:50.60303038033001px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">2</span><span class="seat-name">Riley Wolter</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:194px;top:110px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">3</span><span class="seat-name">Rodrigo Escobar</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:169.39696961967px;top:169.39696961967px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">4</span><span class="seat-name">Hannah Escobar</span><span class="meal-badge meal-CHK">CHK</span><span style="font-size:6px;color:rgba(212,104,122,.7)">⚠️</span></div></div><div class="seat-slot" style="left:110px;top:194px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">5</span><span class="seat-name">Maddie Dittmer</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:50.60303038033001px;top:169.39696961967px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">6</span><span class="seat-name">Matthew Truex</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:26px;top:110.00000000000001px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">7</span><span class="seat-name">Ava Tjornhom</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:50.60303038033px;top:50.60303038033001px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">8</span><span class="seat-name">Taylor Truex</span><span class="meal-badge meal-KDM">KDM</span></div></div></div></div>
+    <div class="seat-grid-cell" style="grid-column:2;grid-row:3"><div class="round-table-wrap small" style="width:220px;height:220px;"><div class="round-table-surface"><div class="rt-label">TABLE<br><span class="rt-num">10</span></div></div><div class="seat-slot" style="left:110px;top:26px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">1</span><span class="seat-name">Noah Barcomb</span><span class="meal-badge meal-KDM">KDM</span></div></div><div class="seat-slot" style="left:175.6738445273145px;top:57.62685664386639px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">2</span><span class="seat-name">Maddy Garrison</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:191.89394462327317px;top:128.69175845233042px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">3</span><span class="seat-name">Madeline Timba</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:146.4462340858749px;top:185.6813849038032px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">4</span><span class="seat-name">Sean Fischer</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:73.55376591412508px;top:185.68138490380318px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">5</span><span class="seat-name">Alex Waltz</span><span class="meal-badge meal-SWP">SWP</span></div></div><div class="seat-slot" style="left:28.106055376726815px;top:128.69175845233042px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">6</span><span class="seat-name">Charlie Kane</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:44.326155472685485px;top:57.6268566438664px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">7</span><span class="seat-name">Jon Bladel</span><span class="meal-badge meal-SWP">SWP</span></div></div></div></div>
+    <div class="seat-grid-cell" style="grid-column:3;grid-row:3;transform:translateY(-156px)"><div class="round-table-wrap small" style="width:220px;height:220px;"><div class="round-table-surface"><div class="rt-label">TABLE<br><span class="rt-num">13</span></div></div><div class="seat-slot" style="left:110px;top:26px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">1</span><span class="seat-name">Elizabeth Daake</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:169.39696961967px;top:50.60303038033001px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">2</span><span class="seat-name">Ryan Daake</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:194px;top:110px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">3</span><span class="seat-name">Terry Huffer</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:169.39696961967px;top:169.39696961967px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">4</span><span class="seat-name">Shannon Huffer</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:110px;top:194px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">5</span><span class="seat-name">Carrie Huffer</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:50.60303038033001px;top:169.39696961967px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">6</span><span class="seat-name">Ireland Flemmer</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:26px;top:110.00000000000001px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">7</span><span class="seat-name">Tristan Huffer</span><span class="meal-badge meal-CHK">CHK</span></div></div><div class="seat-slot" style="left:50.60303038033px;top:50.60303038033001px;width:55px;"><div class="seat-slot-inner filled"><span class="seat-num">8</span><span class="seat-name">Stephanie Hoppe</span><span class="meal-badge meal-CHK">CHK</span></div></div></div></div>
+  </div></div>
+      <div class="seat-side-panel right" id="seatPoolPanel"><div class="seat-panel-title">People at This Table</div><div class="pool-person seated" data-name="Todd Simonson" data-meal="CHK" data-dietary="" data-partyid="32"><div style="flex:1"><div class="pool-name">Todd Simonson</div><span class="meal-badge meal-CHK">CHK</span></div><span style="font-size:9px;color:#9ecfa2;flex-shrink:0">✓</span></div><div class="pool-person seated" data-name="Cari Simonson" data-meal="CHK" data-dietary="" data-partyid="32"><div style="flex:1"><div class="pool-name">Cari Simonson</div><span class="meal-badge meal-CHK">CHK</span></div><span style="font-size:9px;color:#9ecfa2;flex-shrink:0">✓</span></div><div class="pool-person seated" data-name="Gina Felstead" data-meal="CHK" data-dietary="" data-partyid="37"><div style="flex:1"><div class="pool-name">Gina Felstead</div><span class="meal-badge meal-CHK">CHK</span></div><span style="font-size:9px;color:#9ecfa2;flex-shrink:0">✓</span></div><div class="pool-person seated" data-name="Ryan Horak" data-meal="CHK" data-dietary="" data-partyid="37"><div style="flex:1"><div class="pool-name">Ryan Horak</div><span class="meal-badge meal-CHK">CHK</span></div><span style="font-size:9px;color:#9ecfa2;flex-shrink:0">✓</span></div><div class="pool-person seated" data-name="Arya Felstead" data-meal="KDM" data-dietary="" data-partyid="37"><div style="flex:1"><div class="pool-name">Arya Felstead</div><span class="meal-badge meal-KDM">KDM</span></div><span style="font-size:9px;color:#9ecfa2;flex-shrink:0">✓</span></div><div class="pool-person seated" data-name="Harley-Ann Felstead" data-meal="KDM" data-dietary="" data-partyid="37"><div style="flex:1"><div class="pool-name">Harley-Ann Felstead</div><span class="meal-badge meal-KDM">KDM</span></div><span style="font-size:9px;color:#9ecfa2;flex-shrink:0">✓</span></div><div class="pool-person seated" data-name="Chad Blomstrom" data-meal="CHK" data-dietary="" data-partyid="39"><div style="flex:1"><div class="pool-name">Chad Blomstrom</div><span class="meal-badge meal-CHK">CHK</span></div><span style="font-size:9px;color:#9ecfa2;flex-shrink:0">✓</span></div><div class="pool-person seated" data-name="Melanie Blomstrom" data-meal="CHK" data-dietary="" data-partyid="39"><div style="flex:1"><div class="pool-name">Melanie Blomstrom</div><span class="meal-badge meal-CHK">CHK</span></div><span style="font-size:9px;color:#9ecfa2;flex-shrink:0">✓</span></div></div>
+    </div>
+    <div class="seat-modal-foot">
+      <button class="btn-primary" onclick="closeSeatMode()">Done</button>
+    </div>
+  </div>
+</div>
+
+<div id="print-view"><div class="pv-header"><div class="pv-title">Truex + Simonson 💍</div><div class="pv-date">MAY 21, 2026 · BVD BALLROOM · SEATING CHART — SEAT ASSIGNMENTS</div></div><div class="pv-cards"><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 1</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Evie Truex<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Riley Wolter<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Rodrigo Escobar<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Hannah Escobar<span style="font-size:9px;color:#888"> — Chicken</span><span style="font-size:8px;color:#c0392b"> ⚠️Dairy</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Maddie Dittmer<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Matthew Truex<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Ava Tjornhom<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> Taylor Truex<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 2</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Noah Barcomb<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Maddy Garrison<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Madeline Timba<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Sean Fischer<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Alex Waltz<span style="font-size:9px;color:#888"> — Sweet Potato</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Charlie Kane<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Jon Bladel<span style="font-size:9px;color:#888"> — Sweet Potato</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> <em style="color:#aaa">—</em></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 3</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Jesse Carstensen<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Adam Andrews<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Alaina Turnquist<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Lydia Turnquist<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Emily Adsem<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Clayton Delp<span style="font-size:9px;color:#888"> — Sweet Potato</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> <em style="color:#aaa">—</em></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> <em style="color:#aaa">—</em></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 4</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Hanna Busse<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Joan Davis<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Mark Davis<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Judy Truex<span style="font-size:9px;color:#888"> — Sweet Potato</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Tom Truex<span style="font-size:9px;color:#888"> — Sweet Potato</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Paul Busse<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Tim Busse<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> Jaime Busse<span style="font-size:9px;color:#888"> — Sweet Potato</span></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 5</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Jim Truex<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Lori McKinney<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Drease McKinney<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Kasey McKinney<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Brill Truex<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Molly Sudenga Truex<span style="font-size:9px;color:#888"> — Sweet Potato</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Tim Truex<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> <em style="color:#aaa">—</em></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 6</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Peter Busse<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Eric Busse<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Kellie Busse<span style="font-size:9px;color:#888"> — Sweet Potato</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Eva Busse<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Max Busse<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Tim Busse<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Heidi Busse<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> Kimberly Busse<span style="font-size:9px;color:#888"> — Chicken</span><span style="font-size:8px;color:#c0392b"> ⚠️Coconut allergy</span></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 7</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Esme Wolden<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Tessa Wolden<span style="font-size:9px;color:#888"> — Sweet Potato</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Rory Wolden<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Linden Wolden<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Caroline Wolden<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Bianca Ramirez<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Cynthia Garrison<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> <em style="color:#aaa">—</em></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 8</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Jacob Tettam<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Katie Tettam<span style="font-size:9px;color:#888"> — Sweet Potato</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Troy Tettam<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Nancy Sack<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Kim Lange<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Jason Lange<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Rheese Meyer<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> Emily Tettam<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 9</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Carter Lange<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Hunter Nystrom<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Thea Allen<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Mikinzie Blanck<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Juno Donovan<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Andrew Donovan<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Isaac Gustavson<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> Matthew Gustavson<span style="font-size:9px;color:#888"> — Sweet Potato</span></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 10</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Elizabeth Daake<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Ryan Daake<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Terry Huffer<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Shannon Huffer<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Carrie Huffer<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Ireland Flemmer<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Tristan Huffer<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> Stephanie Hoppe<span style="font-size:9px;color:#888"> — Chicken</span></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 11</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Rick Truex<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Karen Truex<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Suzanne Mannstedt<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Scott Mannstedt<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Andrea Turnquist<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Jim Turnquist<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Pete Larson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> Krista Larson<span style="font-size:9px;color:#888"> — Sweet Potato</span></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 12</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Aubriella Brunson<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Cody Brunson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Jayce Brunson<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Alicia Brunson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Aizlyn Brunson<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Angela Olson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Bryan Olson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> <em style="color:#aaa">—</em></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 13</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Arya Felstead<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Ryan Horak<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Chad Blomstrom<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Melanie Blomstrom<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Todd Simonson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Cari Simonson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Harley-Ann Felstead<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> Gina Felstead<span style="font-size:9px;color:#888"> — Chicken</span></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 14</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Nook Tran<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Sabrina Souravong<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Annie Davis<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Libby Moore<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Ali Abulizz<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Will Burney<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Tien Tran<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> <em style="color:#aaa">—</em></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 15</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Diane Simonson<span style="font-size:9px;color:#888"> — Sweet Potato</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Tom Simonson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Creighton Wersaw<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Sandy Hyde<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Karen Sandersfeld<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Dennis Sandersfeld<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> Luke Simonson<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> Josie Simonson<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 16</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Sarah Larson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Bjorn Larson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Anders Larson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Kate Wohlberg<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Nels Larson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Abby Turnquist<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> <em style="color:#aaa">—</em></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> <em style="color:#aaa">—</em></li></ul></div><div class="pc"><div class="pc-header"><div class="pc-label">TABLE 17</div></div><ul class="pc-guests"><li><strong style="font-size:9px;color:#c9953b">1.</strong> Annabell Brunson<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">2.</strong> Jordyn Simonson<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">3.</strong> Arle Bishop<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">4.</strong> Sterling Bishop<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">5.</strong> Kien Huffer<span style="font-size:9px;color:#888"> — Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">6.</strong> Arielle Brunson<span style="font-size:9px;color:#888"> — Kid's Chicken</span></li><li><strong style="font-size:9px;color:#c9953b">7.</strong> <em style="color:#aaa">—</em></li><li><strong style="font-size:9px;color:#c9953b">8.</strong> <em style="color:#aaa">—</em></li></ul></div></div></div>
 
 <!-- EDIT PARTY MODAL -->
 <div class="modal-overlay hidden" id="editOverlay">
   <div class="modal">
     <div class="modal-head">
       <h3>✏️ Edit Party</h3>
-      <div class="modal-sub" id="editModalSub"></div>
+      <div class="modal-sub" id="editModalSub">PARTY #905</div>
     </div>
     <div class="modal-body">
+      <!-- Party-level meta -->
       <div class="ep-meta">
         <div class="ep-field">
           <label>Side</label>
           <select id="ep-side">
-            <option value="bride">💐 Side A</option>
-            <option value="groom">🤵 Side B</option>
+            <option value="bride">💐 Bride's Side</option>
+            <option value="groom">🤵 Groom's Side</option>
           </select>
         </div>
         <div class="ep-field">
@@ -298,14 +1373,38 @@
         </div>
         <div class="ep-field" style="grid-column:1/-1">
           <label>Note</label>
-          <input type="text" id="ep-note" placeholder="Dietary needs, seating note…">
+          <input type="text" id="ep-note" placeholder="Dietary, seating note…">
         </div>
       </div>
+
+      <!-- Member list -->
       <div class="ep-members-header">
         <span class="ep-members-label">Members</span>
         <button class="ep-add-btn" onclick="epAddMember()">+ Add Member</button>
       </div>
-      <div class="ep-members" id="epMemberList"></div>
+      <div class="ep-members" id="epMemberList">
+    <div class="ep-member" data-idx="0">
+      <span class="ep-member-drag" title="drag to reorder">⠿</span>
+      <input class="ep-member-name" type="text" value="Annabell" placeholder="Name…" data-idx="0" oninput="epMembers[0].name=this.value">
+      <select class="ep-member-rsvp" data-idx="0" onchange="epMembers[0].rsvp=this.value">
+        <option value="yes" selected="">✅</option>
+        <option value="pending">🔲</option>
+        <option value="no">❌</option>
+      </select>
+      <button class="ep-member-split" onclick="epSplitMember(0)" title="Split into own party">↗ Split out</button>
+      <button class="ep-member-del" onclick="epRemoveMember(0)" title="Remove member">✕</button>
+    </div>
+    <div class="ep-member" data-idx="1">
+      <span class="ep-member-drag" title="drag to reorder">⠿</span>
+      <input class="ep-member-name" type="text" value="" placeholder="Name…" data-idx="1" oninput="epMembers[1].name=this.value">
+      <select class="ep-member-rsvp" data-idx="1" onchange="epMembers[1].rsvp=this.value">
+        <option value="yes">✅</option>
+        <option value="pending" selected="">🔲</option>
+        <option value="no">❌</option>
+      </select>
+      <button class="ep-member-split" onclick="epSplitMember(1)" title="Split into own party">↗ Split out</button>
+      <button class="ep-member-del" onclick="epRemoveMember(1)" title="Remove member">✕</button>
+    </div></div>
     </div>
     <div class="modal-foot">
       <button class="btn-danger" onclick="epDeleteParty()">🗑 Delete Party</button>
@@ -317,109 +1416,45 @@
   </div>
 </div>
 
-<!-- SETUP MODAL -->
-<div class="modal-overlay" id="setupOverlay" style="z-index:200;">
-  <div class="modal" style="width:480px;">
-    <div class="modal-head">
-      <h3>✦ Set Up Your Seating Chart</h3>
-      <div class="modal-sub">CUSTOMIZE BEFORE YOU START</div>
-    </div>
-    <div class="modal-body">
-      <div class="ep-meta">
-        <div class="ep-field" style="grid-column:1/-1">
-          <label>Couple's Names (shown in header)</label>
-          <input type="text" id="setup-title" placeholder="e.g. Smith &amp; Johnson" value="">
-        </div>
-        <div class="ep-field" style="grid-column:1/-1">
-          <label>Date &amp; Venue</label>
-          <input type="text" id="setup-date" placeholder="e.g. JUNE 14, 2026 · THE GRAND HALL" value="">
-        </div>
-        <div class="ep-field">
-          <label>Partner A name (sweetheart table)</label>
-          <input type="text" id="setup-sw1" placeholder="e.g. Alex" value="">
-        </div>
-        <div class="ep-field">
-          <label>Partner B name (sweetheart table)</label>
-          <input type="text" id="setup-sw2" placeholder="e.g. Jordan" value="">
-        </div>
-        <div class="ep-field">
-          <label>Number of tables to start with</label>
-          <input type="number" id="setup-tables" min="1" max="40" value="6" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--cream);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:4px;outline:none;width:100%;">
-        </div>
-        <div class="ep-field">
-          <label>Guests per table (capacity)</label>
-          <input type="number" id="setup-cap" min="1" max="20" value="8" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--cream);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:4px;outline:none;width:100%;">
-        </div>
-      </div>
-      <div style="font-size:10px;color:rgba(255,255,255,.3);line-height:1.7;margin-top:4px;">
-        After setup, add guests using <strong style="color:var(--gold)">+ Add New Party</strong> in the sidebar,
-        then drag them onto tables. Hover any party card to <strong style="color:var(--gold)">✏️ edit</strong> members, RSVP, notes &amp; more.
-        Hit <strong style="color:#9ecfa2">💾 Save</strong> anytime to download an updated copy.
-      </div>
-    </div>
-    <div class="modal-foot" style="justify-content:flex-end;">
-      <div class="modal-actions">
-        <button class="btn-primary" onclick="applySetup()">Let's Go ✦</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script>
-// ── DATA ──────────────────────────────────────────────────────────────────────
 const P=[
+  {id:1,n:"Alice Smith, Bob Smith",conf:2,poss:2,rsvp:"yes",s:"bride",imm:1,wp:0,note:"",members:[{"name":"Alice Smith","meal":"CHK","dietary":""},{"name":"Bob Smith","meal":"SWP","dietary":""}]},
+  {id:2,n:"Carol Johnson, Dave Johnson, Emma Johnson",conf:3,poss:3,rsvp:"yes",s:"bride",imm:0,wp:0,note:"",members:[{"name":"Carol Johnson","meal":"CHK","dietary":""},{"name":"Dave Johnson","meal":"CHK","dietary":""},{"name":"Emma Johnson","meal":"KDM","dietary":""}]},
+  {id:3,n:"Frank Williams",conf:1,poss:1,rsvp:"yes",s:"groom",imm:1,wp:1,note:"",members:[{"name":"Frank Williams","meal":"CHK","dietary":""}]},
+  {id:4,n:"Grace Brown, Henry Brown",conf:0,poss:2,rsvp:"no",s:"groom",imm:0,wp:0,note:"Awaiting response",members:[{"name":"Grace Brown","meal":"CHK","dietary":""},{"name":"Henry Brown","meal":"CHK","dietary":""}]},
+  {id:5,n:"Isabel Davis",conf:1,poss:1,rsvp:"yes",s:"bride",imm:0,wp:1,note:"⚠️ Gluten-free",members:[{"name":"Isabel Davis","meal":"SWP","dietary":"Gluten-free"}]},
+  {id:6,n:"Jack Wilson, Kay Wilson, Leo Wilson",conf:3,poss:4,rsvp:"mixed",s:"groom",imm:0,wp:0,note:"",members:[{"name":"Jack Wilson","meal":"CHK","dietary":""},{"name":"Kay Wilson","meal":"SWP","dietary":""},{"name":"Leo Wilson","meal":"KDM","dietary":""}]}
 ];
 
 const tables=[
+  {id:1,num:"1",name:"Head Table",cap:8,pids:[1,3],seats:[{"name":"Alice Smith","partyId":1,"meal":"CHK","dietary":""},{"name":"Bob Smith","partyId":1,"meal":"SWP","dietary":""},{"name":"Frank Williams","partyId":3,"meal":"CHK","dietary":""},null,null,null,null,null],row:0,col:1},
+  {id:2,num:"2",name:"",cap:8,pids:[2,5],seats:[{"name":"Carol Johnson","partyId":2,"meal":"CHK","dietary":""},{"name":"Dave Johnson","partyId":2,"meal":"CHK","dietary":""},{"name":"Emma Johnson","partyId":2,"meal":"KDM","dietary":""},{"name":"Isabel Davis","partyId":5,"meal":"SWP","dietary":"Gluten-free"},null,null,null,null],row:0,col:0},
+  {id:3,num:"3",name:"",cap:8,pids:[],seats:[null,null,null,null,null,null,null,null],row:0,col:2}
 ];
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
 let activeFilter='all',dragId=null,dragFrom=null,tableDragId=null;
 let nextSyntheticId=100;
-let hideFull=false;
 const byId=id=>P.find(p=>p.id===id);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const assignedSet=()=>new Set(tables.flatMap(t=>t.pids));
 const rsvpLabel=r=>r==='yes'?'✅ Confirmed':r==='mixed'?'⚠️ Partial':'🔲 Pending';
 const rsvpCls=r=>r==='yes'?'rb-yes':r==='mixed'?'rb-mixed':'rb-pending';
 
-// ── SETUP MODAL ───────────────────────────────────────────────────────────────
-function applySetup(){
-  const title = document.getElementById('setup-title').value.trim();
-  const date  = document.getElementById('setup-date').value.trim();
-  const sw1   = document.getElementById('setup-sw1').value.trim();
-  const sw2   = document.getElementById('setup-sw2').value.trim();
-  const numT  = Math.max(1, parseInt(document.getElementById('setup-tables').value)||6);
-  const cap   = Math.max(1, parseInt(document.getElementById('setup-cap').value)||8);
-
-  if(title) document.getElementById('eventTitle').textContent = '💍 ' + title;
-  if(date)  document.getElementById('eventDate').textContent  = date + ' · SEATING CHART';
-  if(sw1)   document.getElementById('sw1').textContent = sw1;
-  if(sw2)   document.getElementById('sw2').textContent = sw2;
-
-  // Build starter tables
-  tables.length = 0;
-  for(let i=1;i<=numT;i++) tables.push({id:i,num:String(i),name:'',cap,pids:[]});
-
-  document.getElementById('setupOverlay').classList.add('hidden');
-  buildFloor();
-  renderSidebar();
-}
-
+// ── ADD NEW PARTY ─────────────────────────────────────────────────────────────
 // ── ADD TABLE ─────────────────────────────────────────────────────────────────
 function addTable(){
-  const newId = tables.length > 0 ? Math.max(...tables.map(t=>t.id)) + 1 : 1;
-  const cap   = tables.length > 0 ? tables[0].cap : 8;
-  tables.push({id:newId, num:String(newId), name:'', cap, pids:[]});
-  buildFloor();
-  updateStats();
-  setTimeout(()=>{
-    const el = document.getElementById('t'+newId);
-    if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
-  }, 80);
+  const newId=Math.max(...tables.map(t=>t.id))+1;
+  const maxRow=tables.reduce((m,t)=>Math.max(m,t.row??0),0);
+  let nr=0,nc=0;
+  outer:for(let r=0;r<=maxRow+1;r++){for(let c=0;c<3;c++){if(!tables.some(t=>t.row===r&&t.col===c)){nr=r;nc=c;break outer;}}}
+  tables.push({id:newId,num:'',name:'',cap:8,pids:[],seats:Array(8).fill(null),row:nr,col:nc});
+  buildFloor();updateStats();
+  setTimeout(()=>{const el=document.getElementById('t'+newId);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});},80);
 }
 
 // ── HIDE FULL TABLES ──────────────────────────────────────────────────────────
+let hideFull = false;
+let staggered = false;
 function toggleHideFull(){
   hideFull = !hideFull;
   const btn = document.getElementById('hideFullBtn');
@@ -427,29 +1462,36 @@ function toggleHideFull(){
   btn.textContent = hideFull ? '👁 Show All Tables' : 'Hide Full Tables';
   applyHideFull();
 }
+function toggleStagger(){
+  staggered = !staggered;
+  document.getElementById('staggerBtn').classList.toggle('active', staggered);
+  document.getElementById('floor').classList.toggle('stagger', staggered);
+}
 function applyHideFull(){
   tables.forEach(t=>{
     const el = document.getElementById('t'+t.id);
     if(!el) return;
     const pts = t.pids.map(byId).filter(Boolean);
     const poss = pts.reduce((s,p)=>s+p.poss,0);
-    el.classList.toggle('hidden-full', hideFull && poss >= t.cap);
+    const isFull = poss >= t.cap;
+    el.classList.toggle('hidden-full', hideFull && isFull);
   });
 }
 
-// ── ADD NEW PARTY ─────────────────────────────────────────────────────────────
 function addNewParty(){
   const inp = document.getElementById('newGuestName');
   const raw = inp.value.trim();
   if(!raw) return;
   const newId = nextSyntheticId++;
-  P.push({id:newId, n:raw, conf:0, poss:1, rsvp:'pending', s:'bride', imm:0, wp:0, note:''});
+  P.push({id:newId, n:raw, conf:0, poss:1, rsvp:'pending', s:'bride', imm:0, wp:0, note:'', members:[{name:raw, meal:'CHK', dietary:''}]});
   inp.value = '';
   renderSidebar();
 }
 
 // ── EDIT PARTY MODAL ──────────────────────────────────────────────────────────
 let editTargetId = null;
+// epMembers: working copy of members while modal is open
+// Each: { name, rsvp }  ('yes' | 'pending' | 'no')
 let epMembers = [];
 
 function openEditModal(pid, event) {
@@ -457,20 +1499,28 @@ function openEditModal(pid, event) {
   event.preventDefault();
   editTargetId = pid;
   const p = byId(pid);
+
+  // Parse members from comma-separated name string
   epMembers = p.n.split(',').map(s => s.trim()).filter(Boolean)
-    .map(name => ({ name, rsvp: p.rsvp === 'yes' ? 'yes' : 'pending' }));
+    .map(name => ({ name, rsvp: p.rsvp === 'yes' ? 'yes' : p.rsvp === 'mixed' ? 'pending' : 'pending' }));
+  // If only one member and name matches party, keep as-is
   if(epMembers.length === 0) epMembers = [{name: p.n, rsvp: p.rsvp}];
+
   document.getElementById('editModalSub').textContent = `PARTY #${p.id}`;
   document.getElementById('ep-side').value = p.s;
   document.getElementById('ep-rsvp').value = p.rsvp;
   document.getElementById('ep-note').value = p.note || '';
+
   renderEpMembers();
   document.getElementById('editOverlay').classList.remove('hidden');
 }
+
 function closeEditModal(){
   document.getElementById('editOverlay').classList.add('hidden');
-  editTargetId = null; epMembers = [];
+  editTargetId = null;
+  epMembers = [];
 }
+
 function renderEpMembers(){
   const list = document.getElementById('epMemberList');
   if(epMembers.length === 0){
@@ -482,77 +1532,122 @@ function renderEpMembers(){
       <span class="ep-member-drag" title="drag to reorder">⠿</span>
       <input class="ep-member-name" type="text" value="${esc(m.name)}" placeholder="Name…" data-idx="${i}" oninput="epMembers[${i}].name=this.value">
       <select class="ep-member-rsvp" data-idx="${i}" onchange="epMembers[${i}].rsvp=this.value">
-        <option value="yes"     ${m.rsvp==='yes'    ?'selected':''}>✅</option>
+        <option value="yes"  ${m.rsvp==='yes'   ?'selected':''}>✅</option>
         <option value="pending" ${m.rsvp==='pending'?'selected':''}>🔲</option>
-        <option value="no"      ${m.rsvp==='no'     ?'selected':''}>❌</option>
+        <option value="no"  ${m.rsvp==='no'    ?'selected':''}>❌</option>
       </select>
       <button class="ep-member-split" onclick="epSplitMember(${i})" title="Split into own party">↗ Split out</button>
       <button class="ep-member-del" onclick="epRemoveMember(${i})" title="Remove member">✕</button>
     </div>`).join('');
 }
+
 function epAddMember(){
   epMembers.push({name:'', rsvp:'pending'});
   renderEpMembers();
+  // Focus the new name input
   const inputs = document.querySelectorAll('.ep-member-name');
   if(inputs.length) inputs[inputs.length-1].focus();
 }
-function epRemoveMember(i){ epMembers.splice(i,1); renderEpMembers(); }
+
+function epRemoveMember(i){
+  epMembers.splice(i, 1);
+  renderEpMembers();
+}
+
 function epSplitMember(i){
+  // Pull this member out as their own new party, remove from current list
   const m = epMembers[i];
   if(!m.name.trim()){ epRemoveMember(i); return; }
   const p = byId(editTargetId);
   const newId = nextSyntheticId++;
-  P.push({id:newId, n:m.name.trim(), conf:m.rsvp==='yes'?1:0, poss:m.rsvp==='no'?0:1,
-    rsvp:m.rsvp==='no'?'pending':m.rsvp, s:p.s, imm:p.imm, wp:p.wp, note:`Split from: ${p.n}`});
+  const newParty = {
+    id: newId, n: m.name.trim(),
+    conf: m.rsvp==='yes'?1:0, poss: m.rsvp==='no'?0:1,
+    rsvp: m.rsvp==='no'?'pending':m.rsvp,
+    s: p.s, imm: p.imm, wp: p.wp,
+    note: `Split from: ${p.n}`,
+    members: [{name: m.name.trim(), meal: 'CHK', dietary: ''}]
+  };
+  P.push(newParty);
+  // Place new party on same table if possible
   const tbl = tables.find(t=>t.pids.includes(editTargetId));
   if(tbl) tbl.pids.push(newId);
-  epMembers.splice(i,1);
+  epMembers.splice(i, 1);
   renderEpMembers();
 }
+
 function epDeleteParty(){
   if(!confirm('Delete this entire party? They will be removed from the chart.')) return;
+  // Remove from tables
   tables.forEach(t=>{ t.pids = t.pids.filter(id=>id!==editTargetId); });
+  // Remove from P
   const idx = P.findIndex(p=>p.id===editTargetId);
   if(idx !== -1) P.splice(idx, 1);
-  closeEditModal(); buildFloor(); renderSidebar();
+  closeEditModal();
+  buildFloor();
+  renderSidebar();
 }
+
 function saveEditModal(){
   const p = byId(editTargetId);
   if(!p) return closeEditModal();
+
+  // Collect current name inputs (in case user typed without oninput firing)
   document.querySelectorAll('.ep-member-name').forEach((inp,i)=>{ if(epMembers[i]) epMembers[i].name=inp.value; });
   document.querySelectorAll('.ep-member-rsvp').forEach((sel,i)=>{ if(epMembers[i]) epMembers[i].rsvp=sel.value; });
+
   const validMembers = epMembers.filter(m=>m.name.trim());
+  // Rebuild party name from members
   p.n = validMembers.map(m=>m.name.trim()).join(', ') || p.n;
   p.s = document.getElementById('ep-side').value;
+  p.rsvp = document.getElementById('ep-rsvp').value;
   p.note = document.getElementById('ep-note').value.trim();
+
+  // Recount: confirmed = members with rsvp yes, possible = members not 'no'
   const yesCount  = validMembers.filter(m=>m.rsvp==='yes').length;
   const possCount = validMembers.filter(m=>m.rsvp!=='no').length;
   p.conf = yesCount;
-  p.poss = Math.max(possCount, yesCount) || validMembers.length || 1;
+  p.poss = Math.max(possCount, yesCount);
+  if(p.poss === 0) p.poss = validMembers.length || 1;
+
+  // Auto-set rsvp status from members if not overridden
   if(yesCount > 0 && possCount === yesCount) p.rsvp = 'yes';
   else if(yesCount > 0) p.rsvp = 'mixed';
   else p.rsvp = document.getElementById('ep-rsvp').value;
-  closeEditModal(); buildFloor(); renderSidebar();
-}
-document.getElementById('editOverlay').addEventListener('click', function(e){ if(e.target===this) closeEditModal(); });
 
-// ── PARTY CARD HTML ───────────────────────────────────────────────────────────
+  closeEditModal();
+  buildFloor();
+  renderSidebar();
+}
+
+// Close on overlay click
+document.getElementById('editOverlay').addEventListener('click', function(e){
+  if(e.target===this) closeEditModal();
+});
+
+function mealBadgesHtml(p){
+  if(!p.members||!p.members.length) return '';
+  const counts={};
+  p.members.forEach(m=>{counts[m.meal]=(counts[m.meal]||0)+1;});
+  return Object.entries(counts).map(([meal,n])=>`<span class="meal-badge meal-${meal}">${n>1?n+'× ':''}${meal}</span>`).join('');
+}
 function partyHTML(p){
   const countTxt=p.conf===p.poss?`${p.poss} guest${p.poss!==1?'s':''}`:`${p.conf}✅ / ${p.poss} guests`;
+  const meals=mealBadgesHtml(p);
   return`<div class="party-card status-${p.rsvp}" draggable="true" data-pid="${p.id}">
     <button class="edit-btn" onclick="openEditModal(${p.id},event)">✏️ edit</button>
     <div class="party-name">${esc(p.n)}</div>
     <div class="party-meta">
       <span class="party-count">${countTxt}</span>
-      <span class="party-tag ${p.s==='bride'?'tb':'tg'}">${p.s==='bride'?'💐 Side A':'🤵 Side B'}</span>
+      <span class="party-tag ${p.s==='bride'?'tb':'tg'}">${p.s==='bride'?'💐 Bride':'🤵 Groom'}</span>
       <span class="rsvp-badge ${rsvpCls(p.rsvp)}">${rsvpLabel(p.rsvp)}</span>
       ${p.wp?'<span class="party-wp">★ WP</span>':''}
     </div>
+    ${meals?`<div class="party-meals">${meals}</div>`:''}
     ${p.note?`<div class="party-note">${esc(p.note)}</div>`:''}
   </div>`;
 }
 
-// ── TABLE RENDER ──────────────────────────────────────────────────────────────
 function renderTable(t){
   const el=document.getElementById('t'+t.id);
   const pts=t.pids.map(byId).filter(Boolean);
@@ -570,7 +1665,11 @@ function renderTable(t){
       </div>
       ${pts.length>0?`<button class="clear-table-btn" title="Clear table">✕</button>`:`<button class="del-table-btn" title="Delete empty table">🗑</button>`}
     </div>
-    <div class="table-guests">${pts.length===0?'<div class="table-empty">drop parties here</div>':pts.map(p=>partyHTML(p)).join('')}</div>`;
+    <div class="table-guests">${pts.length===0?'<div class="table-empty">drop parties here</div>':pts.map(p=>partyHTML(p)).join('')}</div>
+    <div class="table-footer">
+      <button class="assign-seats-btn" onclick="openSeatMode(${t.id})">⊙ Assign Seats</button>
+      <span class="seats-filled">${(t.seats||[]).filter(Boolean).length}/${t.cap} seated</span>
+    </div>`;
   el.querySelector('.table-name-input').addEventListener('input',e=>{t.name=e.target.value;});
   const numInp=el.querySelector('.table-num-input');
   numInp.addEventListener('input',e=>{t.num=e.target.value;});
@@ -593,7 +1692,6 @@ function renderTable(t){
   });
 }
 
-// ── SIDEBAR ───────────────────────────────────────────────────────────────────
 function renderSidebar(){
   const q=document.getElementById('searchBox').value.toLowerCase();
   const asgn=assignedSet();
@@ -627,7 +1725,7 @@ function updateStats(){
   document.getElementById('topStats').innerHTML=
     `<span class="stat-line" style="color:#9ecfa2">${totConf-unConf} confirmed seated</span>
      <span class="stat-line" style="color:#d4aa5a">${totPoss-unPoss} max possible</span>
-     <span class="stat-line" style="font-size:9px;color:rgba(255,255,255,.2)">${tables.length} tables</span>`;
+     <span class="stat-line" style="font-size:9px;color:rgba(255,255,255,.2)">${tables.length} tables · 8 per table</span>`;
 }
 
 function setFilter(f){
@@ -640,7 +1738,6 @@ function setFilter(f){
   renderSidebar();
 }
 
-// ── DRAG & DROP ───────────────────────────────────────────────────────────────
 function setupTableDrop(el,tid){
   el.addEventListener('dragover',e=>{
     e.preventDefault();
@@ -654,8 +1751,8 @@ function setupTableDrop(el,tid){
     e.preventDefault();el.classList.remove('drop-active');el.classList.remove('table-drag-over');
     if(tableDragId!==null){
       if(tableDragId!==tid){
-        const fi=tables.findIndex(t=>t.id===tableDragId),ti=tables.findIndex(t=>t.id===tid);
-        if(fi!==-1&&ti!==-1){const[m]=tables.splice(fi,1);tables.splice(ti,0,m);buildFloor();updateStats();}
+        const src=tables.find(t=>t.id===tableDragId),dst=tables.find(t=>t.id===tid);
+        if(src&&dst){const[sr,sc]=[src.row,src.col];src.row=dst.row;src.col=dst.col;dst.row=sr;dst.col=sc;buildFloor();updateStats();}
       }
       tableDragId=null;return;
     }
@@ -673,43 +1770,43 @@ document.getElementById('unassignedList').addEventListener('drop',e=>{
   dragId=null;dragFrom=null;refresh();
 });
 
-// ── SAVE TO FILE ──────────────────────────────────────────────────────────────
 function saveToFile(){
   const btn=document.getElementById('saveBtn');
   btn.textContent='💾 Saving…'; btn.classList.add('saving');
 
-  const titleEl = document.getElementById('eventTitle');
-  const dateEl  = document.getElementById('eventDate');
-  const sw1El   = document.getElementById('sw1');
-  const sw2El   = document.getElementById('sw2');
-
+  // Serialize current P array and tables array back into JS source strings
   const pSrc = 'const P=[\n' + P.map(p=>{
-    const keys=['id','n','conf','poss','rsvp','s','imm','wp','note'];
-    const parts = keys.map(k=>{ const v=p[k]; return `${k}:${typeof v==='string'?JSON.stringify(v):v}`; });
+    const keys=['id','n','conf','poss','rsvp','s','imm','wp','note','members'];
+    const parts = keys.map(k=>{
+      const v=p[k];
+      if(typeof v==='string') return `${k}:${JSON.stringify(v)}`;
+      if(Array.isArray(v)) return `${k}:${JSON.stringify(v)}`;
+      return `${k}:${v}`;
+    });
     return '  {'+parts.join(',')+'}';
   }).join(',\n') + '\n];';
 
   const tSrc = 'const tables=[\n' + tables.map(t=>{
-    return `  {id:${t.id},num:${JSON.stringify(String(t.num??t.id))},name:${JSON.stringify(t.name)},cap:${t.cap},pids:[${t.pids.join(',')}]}`;
+    return `  {id:${t.id},num:${JSON.stringify(String(t.num??t.id))},name:${JSON.stringify(t.name)},cap:${t.cap},pids:[${t.pids.join(',')}],seats:${JSON.stringify(t.seats||Array(8).fill(null))},row:${t.row??0},col:${t.col??0}}`;
   }).join(',\n') + '\n];';
 
-  let html = document.documentElement.outerHTML;
-  html = html.replace(/const P=\[[\s\S]*?\n\];/, pSrc);
-  html = html.replace(/const tables=\[[\s\S]*?\n\];/, tSrc);
+  // Get the current HTML source and replace both const blocks
+  const html = document.documentElement.outerHTML;
 
-  // Persist displayed header text into the HTML source
-  html = html.replace(/id="eventTitle"[^>]*>[^<]*</, `id="eventTitle">${titleEl.textContent}<`);
-  html = html.replace(/id="eventDate"[^>]*>[^<]*</, `id="eventDate">${dateEl.textContent}<`);
-  html = html.replace(/id="sw1"[^>]*>[^<]*</, `id="sw1">${sw1El.textContent}<`);
-  html = html.replace(/id="sw2"[^>]*>[^<]*</, `id="sw2">${sw2El.textContent}<`);
+  // Replace P array block
+  const pRx = /const P=\[[\s\S]*?\n\];/;
+  // Replace tables array block
+  const tRx = /const tables=\[[\s\S]*?\n\];/;
 
-  // On subsequent saves, don't show setup modal again
-  html = html.replace('class="modal-overlay" id="setupOverlay"', 'class="modal-overlay hidden" id="setupOverlay"');
+  let updated = html.replace(pRx, pSrc).replace(tRx, tSrc);
 
-  const blob = new Blob([html], {type:'text/html'});
+  // Trigger download
+  const blob = new Blob([updated], {type:'text/html'});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href = url; a.download = 'seating_chart.html'; a.click();
+  a.href = url;
+  a.download = 'seating_chart.html';
+  a.click();
   URL.revokeObjectURL(url);
 
   setTimeout(()=>{
@@ -718,42 +1815,261 @@ function saveToFile(){
   }, 400);
 }
 
-// ── BUILD FLOOR ───────────────────────────────────────────────────────────────
+function setupEmptyCellDrop(el,r,c){
+  el.addEventListener('dragover',e=>{
+    if(tableDragId!==null){e.preventDefault();el.classList.add('table-drag-over');}
+  });
+  el.addEventListener('dragleave',()=>el.classList.remove('table-drag-over'));
+  el.addEventListener('drop',e=>{
+    e.preventDefault();el.classList.remove('table-drag-over');
+    if(tableDragId!==null){
+      const t=tables.find(x=>x.id===tableDragId);
+      if(t){t.row=r;t.col=c;buildFloor();updateStats();}
+      tableDragId=null;
+    }
+  });
+}
 function buildFloor(){
   const floor=document.getElementById('floor');
-  floor.querySelectorAll('.table-card').forEach(el=>el.remove());
-  tables.forEach(t=>{
-    const el=document.createElement('div');el.className='table-card';el.id='t'+t.id;
-    floor.appendChild(el);renderTable(t);setupTableDrop(el,t.id);
-  });
+  floor.querySelectorAll('.table-card,.table-empty-cell').forEach(el=>el.remove());
+  const maxRow=tables.reduce((m,t)=>Math.max(m,t.row??0),0);
+  for(let r=0;r<=maxRow;r++){
+    for(let c=0;c<3;c++){
+      const t=tables.find(x=>x.row===r&&x.col===c);
+      if(t){
+        const el=document.createElement('div');el.className='table-card';el.id='t'+t.id;
+        el.dataset.col=c;
+        floor.appendChild(el);renderTable(t);setupTableDrop(el,t.id);
+      }else{
+        const el=document.createElement('div');el.className='table-empty-cell';
+        el.dataset.row=r;el.dataset.col=c;
+        setupEmptyCellDrop(el,r,c);
+        floor.appendChild(el);
+      }
+    }
+  }
   applyHideFull();
 }
 function refresh(){tables.forEach(t=>renderTable(t));renderSidebar();applyHideFull();}
 
-function openPrint(){
-  const sorted=[...tables].sort((a,b)=>{
-    const na=parseInt(a.num),nb=parseInt(b.num);
-    if(!isNaN(na)&&!isNaN(nb))return na-nb;
-    return String(a.num??'').localeCompare(String(b.num??''));
+// ── SEAT MODE ─────────────────────────────────────────────────────────────────
+let seatTableId=null, seatDragSrc=null, seatDragData=null;
+
+function openSeatMode(tid){
+  seatTableId=tid;
+  const t=tables.find(x=>x.id===tid);
+  if(t&&!t.seats) t.seats=Array(8).fill(null);
+  renderSeatMode();
+  document.getElementById('seatOverlay').classList.remove('hidden');
+}
+function closeSeatMode(){
+  document.getElementById('seatOverlay').classList.add('hidden');
+  seatTableId=null; refresh();
+}
+function renderSeatMode(){
+  const t=tables.find(x=>x.id===seatTableId); if(!t) return;
+  const filled=(t.seats||[]).filter(Boolean).length;
+  const total=(t.pids||[]).reduce((n,pid)=>{const p=byId(pid);return n+(p&&p.members?p.members.length:0);},0)||t.cap||8;
+  document.getElementById('seatModalTitle').textContent=`Table ${t.num||t.id} — Seat Assignments`;
+  document.getElementById('seatModalSub').textContent=`${filled} of ${total} seats filled`;
+  renderSpatialGrid(t); renderSeatPool(t);
+}
+
+function buildTableCircleHTML(t, opts){
+  const {cx=190,cy=190,r=148,slotW=85,interactive=true}=opts||{};
+  const seats=t.seats||[];
+  const count=Math.max(1,(t.pids||[]).reduce((n,pid)=>{const p=byId(pid);return n+(p&&p.members?p.members.length:0);},0))||t.cap||8;
+  let html=`<div class="round-table-surface"><div class="rt-label">TABLE<br><span class="rt-num">${esc(String(t.num||t.id))}</span></div></div>`;
+  for(let i=0;i<count;i++){
+    const angle=(i*(360/count)-90)*Math.PI/180;
+    const x=cx+r*Math.cos(angle), y=cy+r*Math.sin(angle);
+    const seat=seats[i]||null;
+    const dragAttrs=interactive&&seat?`draggable="true" ondragstart="seatSlotDragStart(event,${i})" ondragend="seatSlotDragEnd(event)"`:'';
+    const dropAttrs=interactive?`ondragover="seatDragOver(event,${i})" ondragleave="seatDragLeave(event)" ondrop="seatDrop(event,${i})"`:'';
+    const unassignBtn=interactive&&seat?`<button class="seat-unassign-btn" onclick="unassignSeat(${i})" title="Remove">✕</button>`:'';
+    const inner=seat
+      ?`<span class="seat-num">${i+1}</span><span class="seat-name">${esc(seat.name)}</span><span class="meal-badge meal-${seat.meal}">${seat.meal}</span>${seat.dietary?`<span style="font-size:6px;color:rgba(212,104,122,.7)">⚠️</span>`:''}${unassignBtn}`
+      :`<span class="seat-num">${i+1}</span><span class="seat-empty-hint">—</span>`;
+    html+=`<div class="seat-slot" style="left:${x}px;top:${y}px;width:${slotW}px;"><div class="seat-slot-inner${seat?' filled':''}" ${dragAttrs} ${dropAttrs}>${inner}</div></div>`;
+  }
+  return html;
+}
+
+function renderSpatialGrid(t){
+  const area=document.getElementById('seatSpatialArea');
+  const row=t.row??0,col=t.col??0;
+  const getNbr=(dr,dc)=>{
+    const nr=row+dr,nc=col+dc;
+    if(nr<0||nc<0||nc>2) return null;
+    return tables.find(x=>x.row===nr&&x.col===nc)??null;
+  };
+  const tl=getNbr(-1,-1),top=getNbr(-1,0),tr=getNbr(-1,1);
+  const left=getNbr(0,-1),right=getNbr(0,1);
+  const bl=getNbr(1,-1),bottom=getNbr(1,0),br=getNbr(1,1);
+  const mkNbr=nt=>{
+    if(!nt) return '';
+    return `<div class="round-table-wrap small" style="width:220px;height:220px;">${buildTableCircleHTML(nt,{cx:110,cy:110,r:84,slotW:55,interactive:false})}</div>`;
+  };
+  // stagger: room col:1 is shifted down relative to col:0 and col:2
+  // When viewing a col:0 or col:2 table, col:1 neighbors shift DOWN 156px
+  // When viewing a col:1 table, col:0 and col:2 neighbors shift UP 156px
+  const sOff=(spCol)=>{
+    if(!staggered) return '';
+    const rc=col+(spCol-1);
+    if(col!==1&&rc===1) return ';transform:translateY(156px)';
+    if(col===1&&rc!==1) return ';transform:translateY(-156px)';
+    return '';
+  };
+  area.innerHTML=`<div class="seat-grid">
+    <div class="seat-grid-cell" style="grid-column:1;grid-row:1${sOff(0)}">${mkNbr(tl)}</div>
+    <div class="seat-grid-cell" style="grid-column:2;grid-row:1${sOff(1)}">${mkNbr(top)}</div>
+    <div class="seat-grid-cell" style="grid-column:3;grid-row:1${sOff(2)}">${mkNbr(tr)}</div>
+    <div class="seat-grid-cell" style="grid-column:1;grid-row:2${sOff(0)}">${mkNbr(left)}</div>
+    <div class="seat-grid-cell" style="grid-column:2;grid-row:2">
+      <div class="round-table-wrap" id="roundTableWrap" style="width:380px;height:380px;"></div>
+    </div>
+    <div class="seat-grid-cell" style="grid-column:3;grid-row:2${sOff(2)}">${mkNbr(right)}</div>
+    <div class="seat-grid-cell" style="grid-column:1;grid-row:3${sOff(0)}">${mkNbr(bl)}</div>
+    <div class="seat-grid-cell" style="grid-column:2;grid-row:3${sOff(1)}">${mkNbr(bottom)}</div>
+    <div class="seat-grid-cell" style="grid-column:3;grid-row:3${sOff(2)}">${mkNbr(br)}</div>
+  </div>`;
+  document.getElementById('roundTableWrap').innerHTML=buildTableCircleHTML(t,{cx:190,cy:190,r:148,slotW:85,interactive:true});
+}
+
+function renderSeatPool(t){
+  const panel=document.getElementById('seatPoolPanel');
+  const people=(t.pids||[]).flatMap(pid=>{
+    const p=byId(pid); return p&&p.members?p.members.map(m=>({...m,partyId:pid})):[];
   });
-  const cards=sorted.filter(t=>t.pids.length>0).map(t=>{
-    const pts=t.pids.map(byId).filter(Boolean);
-    const names=pts.flatMap(p=>p.n.split(',').map(s=>s.trim()).filter(Boolean));
-    const label=t.num?`TABLE ${esc(String(t.num))}`:'TABLE';
-    const nameRow=t.name?`<div class="pc-name">${esc(t.name)}</div>`:'';
-    return`<div class="pc"><div class="pc-header"><div class="pc-label">${label}</div>${nameRow}</div><ul class="pc-guests">${names.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></div>`;
+  const seated=new Set((t.seats||[]).filter(Boolean).map(s=>s.name));
+  const items=people.map(person=>{
+    const is=seated.has(person.name);
+    return `<div class="pool-person${is?' seated':''}" ${!is?'draggable="true"':''} data-name="${esc(person.name)}" data-meal="${person.meal}" data-dietary="${esc(person.dietary||'')}" data-partyid="${person.partyId}" ${!is?'ondragstart="poolDragStart(event)" ondragend="poolDragEnd(event)"':''}><div style="flex:1"><div class="pool-name">${esc(person.name)}</div><span class="meal-badge meal-${person.meal}">${person.meal}</span>${person.dietary?` <span style="font-size:8px;color:rgba(212,104,122,.7)">⚠️</span>`:''}</div>${is?'<span style="font-size:9px;color:#9ecfa2;flex-shrink:0">✓</span>':''}</div>`;
   }).join('');
-  const titleEl=document.querySelector('#eventTitle,.top-bar h1');
-  const dateEl=document.querySelector('#eventDate,.top-bar .date');
-  const titleTxt=titleEl?titleEl.textContent:'';
-  const dateTxt=dateEl?dateEl.textContent:'';
+  panel.innerHTML=`<div class="seat-panel-title">People at This Table</div>${items||'<div style="font-size:10px;color:rgba(255,255,255,.2);padding:8px;font-style:italic">No one assigned to this table</div>'}`;
+  panel.ondragover=e=>e.preventDefault();
+  panel.ondrop=e=>{
+    e.preventDefault();
+    if(typeof seatDragSrc==='number'){
+      const t2=tables.find(x=>x.id===seatTableId);
+      if(t2&&t2.seats) t2.seats[seatDragSrc]=null;
+      seatDragSrc=null; seatDragData=null; setTimeout(()=>renderSeatMode(),0);
+    }
+  };
+}
+
+
+function poolDragStart(e){
+  const el=e.currentTarget; if(el.classList.contains('seated')){e.preventDefault();return;}
+  seatDragSrc='pool';
+  seatDragData={name:el.dataset.name,partyId:parseInt(el.dataset.partyid),meal:el.dataset.meal,dietary:el.dataset.dietary||''};
+  setTimeout(()=>el.classList.add('dragging'),0);
+  e.dataTransfer.effectAllowed='move';
+}
+function poolDragEnd(e){e.currentTarget.classList.remove('dragging');}
+function seatSlotDragStart(e,idx){
+  const t=tables.find(x=>x.id===seatTableId);
+  if(!t||!t.seats||!t.seats[idx]){e.preventDefault();return;}
+  seatDragSrc=idx; seatDragData={...t.seats[idx]};
+  e.dataTransfer.effectAllowed='move';
+}
+function seatSlotDragEnd(e){}
+function seatDragOver(e,idx){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function seatDragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function seatDrop(e,idx){
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  if(!seatDragData) return;
+  const t=tables.find(x=>x.id===seatTableId); if(!t) return;
+  if(!t.seats) t.seats=Array(8).fill(null);
+  if(seatDragSrc==='pool'){
+    t.seats=t.seats.map(s=>s&&s.name===seatDragData.name?null:s);
+    t.seats[idx]={...seatDragData};
+  } else {
+    const fi=seatDragSrc;
+    if(fi!==idx){const tmp=t.seats[idx];t.seats[idx]=t.seats[fi];t.seats[fi]=tmp;}
+  }
+  seatDragSrc=null; seatDragData=null; setTimeout(()=>renderSeatMode(),0);
+}
+function unassignSeat(idx){
+  const t=tables.find(x=>x.id===seatTableId); if(!t||!t.seats) return;
+  t.seats[idx]=null; renderSeatMode();
+}
+document.getElementById('seatOverlay').addEventListener('click',function(e){if(e.target===this)closeSeatMode();});
+
+// ── SEAT CHART PRINT ──────────────────────────────────────────────────────────
+function printSeatCharts(){
+  const mealLabel={CHK:'Chicken',SWP:'Sweet Potato',KDM:"Kid's Chicken"};
+  const maxRow=tables.reduce((m,t)=>Math.max(m,t.row??0),0);
+  let cards='';
+  for(let r=0;r<=maxRow;r++){
+    for(let c=0;c<3;c++){
+      const t=tables.find(x=>x.row===r&&x.col===c);
+      if(!t||!t.pids.length){cards+=`<div class="pc pc-empty"></div>`;continue;}
+      const count=Math.max(1,(t.pids||[]).reduce((n,pid)=>{const p=byId(pid);return n+(p&&p.members?p.members.length:0);},0))||t.cap||8;
+      const label=t.num?`TABLE ${esc(String(t.num))}`:'TABLE';
+      const nameRow=t.name?`<div class="pc-name">${esc(t.name)}</div>`:'';
+      const rows=Array.from({length:count},(_,i)=>{
+        const s=(t.seats||[])[i];
+        const name=s?esc(s.name):'<em style="color:#aaa">—</em>';
+        const meal=s?`<span style="font-size:9px;color:#888"> — ${mealLabel[s.meal]||s.meal}</span>`:'';
+        const diet=s&&s.dietary?`<span style="font-size:8px;color:#c0392b"> ⚠️ ${esc(s.dietary)}</span>`:'';
+        return `<li><strong style="font-size:9px;color:#c9953b">${i+1}.</strong> ${name}${meal}${diet}</li>`;
+      }).join('');
+      cards+=`<div class="pc"><div class="pc-header"><div class="pc-label">${label}</div>${nameRow}</div><ul class="pc-guests">${rows}</ul></div>`;
+    }
+  }
+  const titleEl=document.querySelector('.top-bar h1');
+  const dateEl=document.querySelector('.top-bar .date');
   document.getElementById('print-view').innerHTML=
-    `<div class="pv-header"><div class="pv-title">${esc(titleTxt)}</div><div class="pv-date">${esc(dateTxt)}</div></div><div class="pv-cards">${cards}</div>`;
+    `<div class="pv-header"><div class="pv-title">${esc(titleEl?titleEl.textContent:'')}</div><div class="pv-date">${esc(dateEl?dateEl.textContent:'')} — SEAT ASSIGNMENTS</div></div><div class="pv-cards">${cards}</div>`;
   window.print();
 }
 
-// Don't auto-build on load — wait for setup modal
-renderSidebar();
+function printListOnly(){
+  const maxRow=tables.reduce((m,t)=>Math.max(m,t.row??0),0);
+  let cards='';
+  for(let r=0;r<=maxRow;r++){
+    for(let c=0;c<3;c++){
+      const t=tables.find(x=>x.row===r&&x.col===c);
+      if(!t||!t.pids.length){cards+=`<div class="pc pc-empty"></div>`;continue;}
+      const label=t.num?`TABLE ${esc(String(t.num))}`:'TABLE';
+      const nameRow=t.name?`<div class="pc-name">${esc(t.name)}</div>`:'';
+      const people=(t.pids||[]).flatMap(pid=>{const p=byId(pid);return p&&p.members?p.members.map(m=>m.name):[];});
+      people.sort((a,b)=>{const la=a.split(' ').pop().toLowerCase(),lb=b.split(' ').pop().toLowerCase();if(la!==lb)return la.localeCompare(lb);return a.split(' ')[0].toLowerCase().localeCompare(b.split(' ')[0].toLowerCase());});
+      const rows=people.map(name=>`<li>${esc(name)}</li>`).join('');
+      cards+=`<div class="pc"><div class="pc-header"><div class="pc-label">${label}</div>${nameRow}</div><ul class="pc-guests">${rows}</ul></div>`;
+    }
+  }
+  const titleEl=document.querySelector('.top-bar h1');
+  const dateEl=document.querySelector('.top-bar .date');
+  document.getElementById('print-view').innerHTML=
+    `<div class="pv-header"><div class="pv-title">${esc(titleEl?titleEl.textContent:'')}</div><div class="pv-date">${esc(dateEl?dateEl.textContent:'')}</div></div><div class="pv-cards">${cards}</div>`;
+  window.print();
+}
+
+function printTableDiagrams(){
+  const sorted=[...tables].filter(t=>t.pids.length).sort((a,b)=>(+(a.num||999))-(+(b.num||999))||(a.row-b.row)||(a.col-b.col));
+  let cells='';
+  sorted.forEach(t=>{
+    const label=t.num?`TABLE ${esc(String(t.num))}`:'TABLE';
+    cells+=`<div class="ptd-cell"><div class="ptd-cell-label">${label}</div><div class="round-table-wrap ptd-wrap">${buildTableCircleHTML(t,{cx:150,cy:150,r:112,slotW:72,interactive:false})}</div></div>`;
+  });
+  const titleEl=document.querySelector('.top-bar h1');
+  const dateEl=document.querySelector('.top-bar .date');
+  document.getElementById('print-view').innerHTML=
+    `<div class="pv-header"><div class="pv-title">${esc(titleEl?titleEl.textContent:'')}</div><div class="pv-date">${esc(dateEl?dateEl.textContent:'')} — TABLE DIAGRAMS</div></div><div class="ptd-grid">${cells}</div>`;
+  window.print();
+}
+
+buildFloor();renderSidebar();
+// Sync staggered JS state from DOM in case file was saved while stagger was on
+(function(){
+  if(document.getElementById('floor').classList.contains('stagger')){
+    staggered=true;
+    document.getElementById('staggerBtn').classList.add('active');
+  }
+})();
 </script>
-</body>
-</html>
+
+
+</body></html>
